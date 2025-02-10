@@ -1,0 +1,353 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<!-- Header Stats Cards -->
+<div class="row g-4 mb-4">
+    <!-- Total Revenue Card -->
+    <div class="col-md-3">
+        <div class="dashboard-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Total Revenue</h6>
+                        <h2 class="card-title mb-0">R @Model.Stats.TotalRevenue.ToString("N2")</h2>
+                        <small class="text-muted">Excl. VAT</small>
+                    </div>
+                    <div class="card-icon">
+                        <i class="fas fa-rand"></i>
+                    </div>
+                </div>
+                @if (Model.Stats.MonthlyGrowthRate != 0)
+                {
+                    <div class="mt-3">
+                        <small class="@(Model.Stats.MonthlyGrowthRate > 0 ? "text-success" : "text-danger")">
+                            <i class="fas fa-@(Model.Stats.MonthlyGrowthRate > 0 ? "arrow-up" : "arrow-down") me-1"></i>
+                            @Math.Abs(Model.Stats.MonthlyGrowthRate).ToString("N1")% from last month
+                        </small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Debtors Card -->
+    <div class="col-md-3">
+        <div class="dashboard-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Total Debtors</h6>
+                        <h2 class="card-title mb-0">@Model.Stats.TotalDebtors.ToString("N0")</h2>
+                    </div>
+                    <div class="card-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Items Card -->
+    <div class="col-md-3">
+        <div class="dashboard-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Stock Items</h6>
+                        <h2 class="card-title mb-0">@Model.Stats.TotalStockItems.ToString("N0")</h2>
+                    </div>
+                    <div class="card-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Month Invoices Card -->
+    <div class="col-md-3">
+        <div class="dashboard-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-subtitle mb-2 text-muted">Current Month Invoices</h6>
+                        <h2 class="card-title mb-0">@Model.Stats.PendingInvoices.ToString("N0")</h2>
+                        @if (Model.Stats.AverageInvoiceValue > 0)
+                        {
+                            <small class="text-muted">
+                                Avg. R @Model.Stats.AverageInvoiceValue.ToString("N2")
+                            </small>
+                        }
+                    </div>
+                    <div class="card-icon">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Area -->
+<div class="row g-4">
+    <!-- Stock Categories Chart -->
+    <div class="col-md-8">
+        <div class="dashboard-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center"
+                 style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Stock by Category
+                </h5>
+                <div class="btn-group">
+                    <button type="button"
+                            class="btn btn-outline-light btn-sm"
+                            id="showCount">Count</button>
+                    <button type="button"
+                            class="btn btn-outline-light btn-sm"
+                            id="showValue">Value</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div style="height: 300px;">
+                    <canvas id="stockChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="col-md-4">
+        <div class="dashboard-card h-100">
+            <div class="card-header"
+                 style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>
+                    Recent Activities
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="timeline">
+                    @foreach (var activity in Model.Stats.RecentActivities)
+                    {
+                        <div class="timeline-item">
+                            <div class="timeline-icon" style="background-color: @activity.Color;">
+                                <i class="fas @activity.Icon"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <p class="mb-0">@activity.Description</p>
+                                <small class="text-muted">@activity.Date.ToString("MMM dd, yyyy HH:mm")</small>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .timeline {
+            position: relative;
+            padding: 20px;
+        }
+
+        .timeline-item {
+            padding: 15px 30px;
+            border-left: 2px solid var(--accent-gold);
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .timeline-icon {
+            position: absolute;
+            left: -11px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--primary-navy);
+            color: var(--cream-bg);
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .timeline-content {
+            background: var(--cream-bg);
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header .btn-outline-light {
+            border-color: var(--cream-bg);
+        }
+
+            .card-header .btn-outline-light:hover {
+                background-color: var(--accent-gold);
+                border-color: var(--accent-gold);
+                color: var(--primary-navy);
+            }
+
+            .card-header .btn-outline-light.active {
+                background-color: var(--accent-gold);
+                border-color: var(--accent-gold);
+                color: var(--primary-navy);
+            }
+
+        .dashboard-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+            .dashboard-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            background-color: var(--primary-navy);
+            color: var(--cream-bg);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Prepare data for the chart
+        const categoryData = @Html.Raw(Json.Serialize(Model.Stats.StockByCategory));
+
+        // Create arrays for labels and data
+        const labels = categoryData.map(item => item.category);
+        const countData = categoryData.map(item => item.stockCount);
+        const valueData = categoryData.map(item => item.stockValue);
+
+        // Theme colors
+        const colors = {
+            primary: '#0A2342',
+            accent: '#C5A368',
+            textDark: '#2D2D2D',
+            cream: '#F7F5F0'
+        };
+
+        // Create chart configuration
+        const chartConfig = {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Items in Stock',
+                    data: countData,
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primary,
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barThickness: 'flex',
+                    maxBarThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: colors.primary,
+                        titleColor: colors.cream,
+                        bodyColor: colors.cream,
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                if (context.dataset.label === 'Stock Value') {
+                                    return 'R ' + value.toLocaleString('en-ZA', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                                }
+                                return value.toLocaleString('en-ZA');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                if (this.chart.data.datasets[0].label === 'Stock Value') {
+                                    return 'R ' + value.toLocaleString('en-ZA');
+                                }
+                                return value.toLocaleString('en-ZA');
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        };
+
+        // Initialize the chart
+        const ctx = document.getElementById('stockChart').getContext('2d');
+        const stockChart = new Chart(ctx, chartConfig);
+
+        // Toggle between count and value views
+        document.getElementById('showCount').addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('showValue').classList.remove('active');
+            stockChart.data.datasets[0].label = 'Items in Stock';
+            stockChart.data.datasets[0].data = countData;
+            stockChart.options.scales.y.ticks.callback = value => value.toLocaleString('en-ZA');
+            stockChart.update();
+        });
+
+        document.getElementById('showValue').addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('showCount').classList.remove('active');
+            stockChart.data.datasets[0].label = 'Stock Value';
+            stockChart.data.datasets[0].data = valueData;
+            stockChart.options.scales.y.ticks.callback = value => 'R ' + value.toLocaleString('en-ZA');
+            stockChart.update();
+        });
+
+        // Set initial state
+        document.getElementById('showCount').classList.add('active');
+
+        // Animation for dashboard cards
+        document.querySelectorAll('.dashboard-card').forEach(card => {
+            card.addEventListener('mouseover', function() {
+                this.style.transform = 'translateY(-5px)';
+                this.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+            });
+
+            card.addEventListener('mouseout', function() {
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = 'none';
+            });
+        });
+    </script>
+}

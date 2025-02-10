@@ -1,0 +1,224 @@
+﻿@page
+@model DynastyBeacon.Pages.Stocks.CreateModel
+@{
+    ViewData["Title"] = "Create Stock Item";
+}
+
+<!-- Header section with breadcrumb -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 mt-2">
+                <li class="breadcrumb-item">
+                    <a asp-page="Index" class="text-decoration-none" style="color: var(--primary-navy);">
+                        <i class="fas fa-boxes me-1"></i>Stock
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">Create New</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-xl-8">
+        <div class="dashboard-card">
+            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                <i class="fas fa-box-open me-2"></i>
+                Stock Information
+            </div>
+            <div class="card-body p-4">
+                @if (!ModelState.IsValid)
+                {
+                    <div class="alert alert-danger border-0 shadow-sm mb-4">
+                        <h5 class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Please correct the following errors:
+                        </h5>
+                        <div asp-validation-summary="All" class="text-danger"></div>
+                    </div>
+                }
+
+                <form method="post" class="needs-validation" novalidate>
+                    <!-- Stock Description -->
+                    <div class="mb-4">
+                        <label asp-for="StockInput.StockDescription" class="form-label required"></label>
+                        <input asp-for="StockInput.StockDescription"
+                               class="form-control"
+                               placeholder="Enter stock description" />
+                        <span asp-validation-for="StockInput.StockDescription" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Pricing Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="StockInput.Cost" class="form-label required"></label>
+                            <div class="input-group">
+                                <span class="input-group-text" style="background-color: var(--cream-bg);">R</span>
+                                <input asp-for="StockInput.Cost"
+                                       class="form-control"
+                                       type="number"
+                                       step="0.01"
+                                       min="0"
+                                       placeholder="0.00" />
+                            </div>
+                            <span asp-validation-for="StockInput.Cost" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="StockInput.SellingPrice" class="form-label required"></label>
+                            <div class="input-group">
+                                <span class="input-group-text" style="background-color: var(--cream-bg);">R</span>
+                                <input asp-for="StockInput.SellingPrice"
+                                       class="form-control"
+                                       type="number"
+                                       step="0.01"
+                                       min="0"
+                                       placeholder="0.00" />
+                            </div>
+                            <span asp-validation-for="StockInput.SellingPrice" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Category Selection -->
+                    <div class="mb-4">
+                        <label asp-for="StockInput.Category" class="form-label required"></label>
+                        <div class="input-group">
+                            <select asp-for="StockInput.Category"
+                                    class="form-select"
+                                    id="categorySelect"
+                                    style="border-color: var(--border-light);">
+                                <option value="">Select Category</option>
+                                @foreach (var category in Model.ExistingCategories)
+                                {
+                                    <option value="@category">@category</option>
+                                }
+                                <option value="new">+ Add New Category</option>
+                            </select>
+                            <input type="text"
+                                   id="newCategoryInput"
+                                   asp-for="NewCategory"
+                                   class="form-control d-none"
+                                   placeholder="Enter new category" />
+                            <button class="btn btn-outline-secondary d-none"
+                                    type="button"
+                                    id="cancelNewCategory"
+                                    style="border-color: var(--border-light);">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="StockInput.Category" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Initial Stock -->
+                    <div class="mb-4">
+                        <label asp-for="StockInput.StockOnHand" class="form-label"></label>
+                        <input asp-for="StockInput.StockOnHand"
+                               class="form-control"
+                               type="number"
+                               min="0"
+                               placeholder="Enter initial stock quantity" />
+                        <span asp-validation-for="StockInput.StockOnHand" class="text-danger small"></span>
+                        <small class="form-text text-muted">Initial stock quantity</small>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="submit"
+                                class="btn btn-primary"
+                                style="background-color: var(--primary-navy); border: none;">
+                            <i class="fas fa-save me-2"></i>Create Stock Item
+                        </button>
+                        <a asp-page="Index"
+                           class="btn btn-outline-secondary"
+                           style="border-color: var(--border-light);">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <style>
+        .required:after {
+            content: " *";
+            color: var(--accent-gold);
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--primary-navy);
+            box-shadow: 0 0 0 0.2rem rgba(10, 35, 66, 0.15);
+        }
+
+        .input-group-text {
+            border-color: var(--border-light);
+        }
+
+        .form-control::placeholder,
+        .form-select::placeholder {
+            color: #adb5bd;
+            opacity: 0.8;
+        }
+    </style>
+
+    <script>
+        $(document).ready(function () {
+            // Category selection handling
+            $('#categorySelect').on('change', function() {
+                if ($(this).val() === 'new') {
+                    $(this).addClass('d-none');
+                    $('#newCategoryInput').removeClass('d-none').focus();
+                    $('#cancelNewCategory').removeClass('d-none');
+                }
+            });
+
+            $('#cancelNewCategory').on('click', function() {
+                $('#categorySelect').removeClass('d-none').val('');
+                $('#newCategoryInput').addClass('d-none').val('');
+                $(this).addClass('d-none');
+            });
+
+            // Format currency inputs
+            $('.input-group input[type="number"]').on('blur', function() {
+                var value = $(this).val();
+                if (value) {
+                    $(this).val(parseFloat(value).toFixed(2));
+                }
+            });
+
+            // Validate selling price against cost with SweetAlert2
+            $('#StockInput_SellingPrice').on('change', function() {
+                var cost = parseFloat($('#StockInput_Cost').val()) || 0;
+                var sellingPrice = parseFloat($(this).val()) || 0;
+
+                if (sellingPrice < cost) {
+                    Swal.fire({
+                        title: 'Invalid Price',
+                        text: 'Selling price must be greater than or equal to cost.',
+                        icon: 'warning',
+                        confirmButtonColor: 'var(--primary-navy)',
+                        confirmButtonText: 'OK'
+                    });
+                    $(this).val(cost.toFixed(2));
+                }
+            });
+
+            // Add loading state to submit button
+            $('form').on('submit', function() {
+                if ($(this).valid()) {
+                    $(this).find('button[type="submit"]')
+                        .prop('disabled', true)
+                        .html('<i class="fas fa-spinner fa-spin me-2"></i>Creating...');
+                }
+            });
+        });
+    </script>
+}

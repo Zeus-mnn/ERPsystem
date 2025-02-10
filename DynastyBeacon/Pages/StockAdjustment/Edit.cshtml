@@ -1,0 +1,269 @@
+﻿@page
+@model DynastyBeacon.Pages.StockAdjustment.EditModel
+@{
+    ViewData["Title"] = "Stock Adjustment";
+}
+
+<div class="container-fluid mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 mt-2">
+                <li class="breadcrumb-item">
+                    <a asp-page="/Stocks/Index" class="text-decoration-none" style="color: var(--primary-navy);">
+                        <i class="fas fa-boxes me-1"></i>Stock
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">Adjust Stock</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <!-- Stock Information -->
+            <div class="card mb-3">
+                <div class="card-header" style="background-color: var(--primary-navy); color: white;">
+                    <i class="fas fa-info-circle me-2"></i>Stock Details
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <tr>
+                                <th style="width: 30%">Stock Code:</th>
+                                <td>@Model.StockCode</td>
+                            </tr>
+                            <tr>
+                                <th>Description:</th>
+                                <td>@Model.StockDescription</td>
+                            </tr>
+                            <tr>
+                                <th>Category:</th>
+                                <td>@Model.Category</td>
+                            </tr>
+                            <tr>
+                                <th>Current Stock:</th>
+                                <td>
+                                    @{
+                                        var stockClass = Model.CurrentStock switch
+                                        {
+                                            <= 0 => "text-danger fw-bold",
+                                            <= 5 => "text-warning fw-bold",
+                                            _ => "text-success fw-bold"
+                                        };
+                                    }
+                                    <span class="@stockClass">@Model.CurrentStock</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Adjustment Form -->
+            <div class="card">
+                <div class="card-header" style="background-color: var(--primary-navy); color: white;">
+                    <i class="fas fa-edit me-2"></i>Make Adjustment
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(TempData["SuccessMessage"]?.ToString()))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show mb-3">
+                            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+                    @if (!ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            <div asp-validation-summary="All" class="text-danger"></div>
+                        </div>
+                    }
+
+                    <form method="post" id="adjustmentForm">
+                        <input type="hidden" asp-for="StockID" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-medium required">Adjustment Amount</label>
+                            <div class="input-group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="decrementValue()">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number"
+                                       asp-for="AdjustmentAmount"
+                                       class="form-control text-center"
+                                       id="adjustmentAmount"
+                                       required />
+                                <button type="button" class="btn btn-outline-secondary" onclick="incrementValue()">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="AdjustmentAmount" class="text-danger small"></span>
+                            <div class="form-text">Use positive numbers to add stock, negative to remove stock</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="AdjustmentReason" class="form-label fw-medium required"></label>
+                            <textarea asp-for="AdjustmentReason"
+                                      class="form-control"
+                                      rows="3"
+                                      required
+                                      placeholder="Enter the reason for this stock adjustment"></textarea>
+                            <span asp-validation-for="AdjustmentReason" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="button" id="btnSaveAdjustment" class="btn btn-primary" style="background-color: var(--primary-navy);" onclick="saveAdjustment()">
+                                <i class="fas fa-check me-1"></i>Save Adjustment
+                            </button>
+                            <button type="button" class="btn btn-outline-success" onclick="downloadReport()">
+                                <i class="fas fa-download me-1"></i>Download Report
+                            </button>
+                            <a asp-page="/Stocks/Index" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        function saveAdjustment() {
+            if (validateForm()) {
+                const form = document.getElementById('adjustmentForm');
+                form.submit();
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('adjustmentAmount').value = '';
+            document.getElementById('AdjustmentReason').value = '';
+            validateAmount();
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            const container = document.querySelector('.card-body');
+            container.insertBefore(alertDiv, container.firstChild);
+            // Automatically hide the alert after 5 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function downloadReport() {
+            const stockId = document.querySelector('input[name="StockID"]').value;
+            const downloadUrl = `?handler=DownloadReport&id=${stockId}`;
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function validateForm() {
+            const input = document.getElementById('adjustmentAmount');
+            const reason = document.getElementById('AdjustmentReason');
+            let isValid = true;
+
+            // Validate adjustment amount
+            const currentStock = @Model.CurrentStock;
+            const newAmount = parseInt(input.value || 0);
+
+            if (currentStock + newAmount < 0) {
+                showError(input, 'Adjustment would result in negative stock');
+                isValid = false;
+            } else {
+                clearError(input);
+            }
+
+            // Validate reason
+            if (!reason.value.trim()) {
+                showError(reason, 'Please provide a reason for the adjustment');
+                isValid = false;
+            } else {
+                clearError(reason);
+            }
+
+            return isValid;
+        }
+
+        function incrementValue() {
+            const input = document.getElementById('adjustmentAmount');
+            input.value = (parseInt(input.value || 0) + 1);
+            validateAmount();
+        }
+
+        function decrementValue() {
+            const input = document.getElementById('adjustmentAmount');
+            input.value = (parseInt(input.value || 0) - 1);
+            validateAmount();
+        }
+
+        function validateAmount() {
+            const input = document.getElementById('adjustmentAmount');
+            const currentStock = @Model.CurrentStock;
+            const newAmount = parseInt(input.value || 0);
+            const saveBtn = document.getElementById('btnSaveAdjustment');
+
+            if (currentStock + newAmount < 0) {
+                showError(input, 'Adjustment would result in negative stock');
+                saveBtn.disabled = true;
+            } else {
+                clearError(input);
+                saveBtn.disabled = false;
+            }
+        }
+
+        function showError(input, message) {
+            input.classList.add('is-invalid');
+            let feedback = input.nextElementSibling;
+            if (!feedback?.classList.contains('invalid-feedback')) {
+                feedback = document.createElement('div');
+                feedback.classList.add('invalid-feedback');
+                input.parentNode.insertBefore(feedback, input.nextSibling);
+            }
+            feedback.textContent = message;
+        }
+
+        function clearError(input) {
+            input.classList.remove('is-invalid');
+            const feedback = input.nextElementSibling;
+            if (feedback?.classList.contains('invalid-feedback')) {
+                feedback.remove();
+            }
+        }
+
+        // Initialize document ready handlers
+        document.addEventListener('DOMContentLoaded', function() {
+            validateAmount();
+            document.getElementById('adjustmentAmount').addEventListener('input', validateAmount);
+
+        @if (!string.IsNullOrEmpty(TempData["SuccessMessage"]?.ToString()))
+        {
+            <text>
+                        showAlert('@TempData["SuccessMessage"]', 'success');
+                        resetForm();  // Reset the form after successful submission
+            </text>
+        }
+        });
+    </script>
+
+    <style>
+        .required:after {
+            content: " *";
+            color: red;
+        }
+    </style>
+}

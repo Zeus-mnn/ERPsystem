@@ -1,0 +1,705 @@
+﻿@page
+@model DynastyBeacon.Pages.Enquries.DebtorsEnquiryModel
+
+@{
+    ViewData["Title"] = "Debtor Enquiry";
+}
+
+<!-- Header section with search -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        
+        <p class="text-muted mb-0">Search and view detailed debtor information</p>
+    </div>
+</div>
+
+<!-- Search and Filter Card -->
+<div class="dashboard-card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <span class="input-group-text bg-light">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" 
+                           id="searchInput" 
+                           class="form-control" 
+                           placeholder="Search by name, account code or email..."
+                           value="@Model.SearchTerm" />
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" id="sortOrder">
+                    <option value="">Sort by...</option>
+                    <option value="name">Name (A-Z)</option>
+                    <option value="name_desc">Name (Z-A)</option>
+                    <option value="balance_desc">Highest Balance</option>
+                    <option value="balance">Lowest Balance</option>
+                    <option value="recent_desc">Most Recent Transaction</option>
+                    <option value="recent">Oldest Transaction</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Debtors List -->
+<div class="dashboard-card mb-4">
+    <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+        <i class="fas fa-users me-2"></i>Debtors List
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead style="background-color: var(--cream-bg);">
+                    <tr>
+                        <th>Account Code</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th class="text-end">Balance</th>
+                        <th class="text-center">Tier</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var debtor in Model.Debtors)
+                    {
+                        <tr>
+                            <td>@debtor.AccountCode</td>
+                            <td>@debtor.Name</td>
+                            <td>
+                                <a href="mailto:@debtor.Email" 
+                                   class="text-decoration-none"
+                                   style="color: var(--primary-navy);">
+                                    @debtor.Email
+                                </a>
+                            </td>
+                            <td class="text-end">
+                                <span class="@(debtor.Balance > 0 ? "text-danger" : "text-success")">
+                                    R @debtor.Balance.ToString("N2")
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge" 
+                                      style="background-color: var(--accent-gold);">
+                                    @debtor.Tier
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-primary view-details"
+                                        data-debtor-id="@debtor.DebtorID"
+                                        style="color: var(--primary-navy); border-color: var(--primary-navy);">
+                                    <i class="fas fa-eye me-1"></i>View
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Debtor Details Modal -->
+<div class="modal fade" id="debtorDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user me-2"></i>
+                    Debtor Report
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="debtorDetailsContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="downloadReport">
+                    <i class="fas fa-download me-2"></i>Download Report
+                </button>
+                <button id="exportCSV" class="btn btn-sm btn-outline-light">
+                    <i class="fas fa-download me-2"></i>Export CSV
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
+    <div id="loadingToast" class="toast align-items-center" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-spinner fa-spin me-2"></i>Processing...
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Required Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+        // Utility Functions
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('en-ZA', {
+                style: 'currency',
+                currency: 'ZAR',
+                minimumFractionDigits: 2
+            }).format(amount);
+        };
+
+        const formatDate = (dateString) => {
+            return new Date(dateString).toLocaleDateString('en-ZA', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        };
+
+        const getStatusClass = (balance) => {
+            if (balance <= 0) return 'text-success';
+            if (balance > 10000) return 'text-danger';
+            return 'text-warning';
+        };
+
+        // Search Functionality with Debounce
+        let searchTimeout;
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('keyup', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const searchParams = new URLSearchParams(window.location.search);
+                searchParams.set('searchTerm', this.value);
+                window.location.href = `${window.location.pathname}?${searchParams.toString()}`;
+            }, 500);
+        });
+
+        // Sort Functionality
+        const sortSelect = document.getElementById('sortOrder');
+        sortSelect.addEventListener('change', function() {
+            const searchParams = new URLSearchParams(window.location.search);
+            searchParams.set('sortOrder', this.value);
+            window.location.href = `${window.location.pathname}?${searchParams.toString()}`;
+        });
+
+        // Initialize Charts
+        const initializeCharts = (data) => {
+            // Transaction Types Pie Chart
+            const typesCtx = document.getElementById('transactionTypesChart').getContext('2d');
+            const typesChart = new Chart(typesCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(data.transactionsByType),
+                    datasets: [{
+                        data: Object.values(data.transactionsByType),
+                        backgroundColor: [
+                            '#0A2342',  // primary-navy
+                            '#C5A368',  // accent-gold
+                            '#2D2D2D',  // text-dark
+                            '#4A90E2'   // blue
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                font: {
+                                    family: "'Lato', sans-serif"
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0A2342',
+                            titleColor: '#F7F5F0',
+                            bodyColor: '#F7F5F0',
+                            padding: 12,
+                            cornerRadius: 8
+                        }
+                    }
+                }
+            });
+
+            // Transaction Values Bar Chart
+            const valuesCtx = document.getElementById('transactionValuesChart').getContext('2d');
+            const valuesChart = new Chart(valuesCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data.valuesByType),
+                    datasets: [{
+                        label: 'Transaction Values',
+                        data: Object.values(data.valuesByType),
+                        backgroundColor: '#0A2342',
+                        borderRadius: 6,
+                        barThickness: 'flex',
+                        maxBarThickness: 50
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#0A2342',
+                            titleColor: '#F7F5F0',
+                            bodyColor: '#F7F5F0',
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: (context) => formatCurrency(context.raw)
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (value) => formatCurrency(value),
+                                font: {
+                                    family: "'Lato', sans-serif"
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Lato', sans-serif"
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            return { typesChart, valuesChart };
+        };
+
+        // Modal Content Generation
+        const generateModalContent = (data) => {
+            return `
+                <!-- Basic Information Card -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <div class="dashboard-card h-100">
+                            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                                <i class="fas fa-info-circle me-2"></i>Basic Information
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-sm-6">
+                                        <label class="text-muted small">Account Code</label>
+                                        <p class="fw-medium">${data.basicInfo.accountCode}</p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="text-muted small">Name</label>
+                                        <p class="fw-medium">${data.basicInfo.name}</p>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="text-muted small">Email</label>
+                                        <p class="fw-medium">
+                                            <a href="mailto:${data.basicInfo.email}" 
+                                               class="text-decoration-none"
+                                               style="color: var(--primary-navy);">
+                                                ${data.basicInfo.email}
+                                            </a>
+                                        </p>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="text-muted small">Address</label>
+                                        <p class="fw-medium">${data.basicInfo.address}</p>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="text-muted small">Alternative Address</label>
+                                        <p class="fw-medium">${data.basicInfo.alternativeAddress || '-'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Summary Card -->
+                    <div class="col-md-6">
+                        <div class="dashboard-card h-100">
+                            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                                <i class="fas fa-chart-line me-2"></i>Financial Summary
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-sm-6">
+                                        <label class="text-muted small">Current Balance</label>
+                                        <p class="fw-medium ${getStatusClass(data.basicInfo.balance)}">
+                                            ${formatCurrency(data.basicInfo.balance)}
+                                        </p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="text-muted small">Sales YTD</label>
+                                        <p class="fw-medium">
+                                            ${formatCurrency(data.basicInfo.salesYearToDate)}
+                                        </p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="text-muted small">Cost YTD</label>
+                                        <p class="fw-medium">
+                                            ${formatCurrency(data.basicInfo.costYearToDate)}
+                                        </p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="text-muted small">Tier</label>
+                                        <p class="fw-medium">
+                                            <span class="badge" style="background-color: var(--accent-gold);">
+                                                ${data.basicInfo.tier || 'Standard'}
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Transaction Statistics -->
+                                <hr>
+                                <div class="row g-3">
+                                    <div class="col-sm-6">
+                                        <label class="text-muted small">Total Transactions</label>
+                                        <p class="fw-medium">${data.totalTransactions}</p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="text-muted small">Average Value</label>
+                                        <p class="fw-medium">
+                                            ${formatCurrency(data.averageTransactionValue)}
+                                        </p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="text-muted small">Largest Transaction</label>
+                                        <p class="fw-medium">
+                                            ${formatCurrency(data.largestTransaction?.grossTransactionValue || 0)}
+                                        </p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="text-muted small">Last Transaction</label>
+                                        <p class="fw-medium">
+                                            ${data.mostRecentTransaction 
+                                                ? formatDate(data.mostRecentTransaction.transactionDate)
+                                                : '-'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <div class="dashboard-card">
+                            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                                <i class="fas fa-chart-pie me-2"></i>Transaction Distribution
+                            </div>
+                            <div class="card-body">
+                                <canvas id="transactionTypesChart" height="300"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="dashboard-card">
+                            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                                <i class="fas fa-chart-bar me-2"></i>Transaction Values
+                            </div>
+                            <div class="card-body">
+                                <canvas id="transactionValuesChart" height="300"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions Table -->
+                <div class="dashboard-card">
+                    <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                        <i class="fas fa-history me-2"></i>Recent Transactions
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead style="background-color: var(--cream-bg);">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Document No</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-end">VAT</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.transactions.map(t => `
+                                        <tr>
+                                            <td>${formatDate(t.transactionDate)}</td>
+                                            <td>
+                                                <span class="badge" 
+                                                      style="background-color: var(--primary-navy);">
+                                                    ${t.transactionType}
+                                                </span>
+                                            </td>
+                                            <td>${t.documentNo}</td>
+                                            <td class="text-end">
+                                                ${formatCurrency(t.grossTransactionValue)}
+                                            </td>
+                                            <td class="text-end">
+                                                ${formatCurrency(t.vatValue)}
+                                            </td>
+                                            <td class="text-end">
+                                                ${formatCurrency(t.grossTransactionValue + t.vatValue)}
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        // View Details Event Handler
+        document.querySelectorAll('.view-details').forEach(button => {
+            button.addEventListener('click', async function() {
+                const debtorId = this.dataset.debtorId;
+                const modal = new bootstrap.Modal(document.getElementById('debtorDetailsModal'));
+                const contentDiv = document.getElementById('debtorDetailsContent');
+                
+                try {
+                    const response = await fetch(`?handler=DebtorDetails&debtorId=${debtorId}`);
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    
+                    const data = await response.json();
+                    contentDiv.innerHTML = generateModalContent(data);
+                    
+                    modal.show();
+                    const charts = initializeCharts(data);
+
+                    // Store charts in modal for cleanup
+                    modal._element.charts = charts;
+                } catch (error) {
+                    console.error('Error loading debtor details:', error);
+                    alert('Error loading debtor details. Please try again.');
+                }
+            });
+        });
+
+        // Modal Cleanup 
+        document.getElementById('debtorDetailsModal').addEventListener('hidden.bs.modal', function() {
+            if (this.charts) {
+                Object.values(this.charts).forEach(chart => chart.destroy());
+                delete this.charts;
+            }
+        });
+
+        // PDF Generation
+        document.getElementById('downloadReport').addEventListener('click', async function() {
+            const modal = document.getElementById('debtorDetailsModal');
+            const content = document.getElementById('debtorDetailsContent');
+            const loadingToast = new bootstrap.Toast(document.getElementById('loadingToast'));
+
+            try {
+                // Show loading indicator
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating PDF...';
+                loadingToast.show();
+
+                // Create PDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'pt', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 40;
+
+                // Add header
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(20);
+                pdf.text('Debtor Report', margin, margin);
+
+                // Add timestamp
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(10);
+                pdf.text(`Generated: ${new Date().toLocaleString('en-ZA')}`, margin, margin + 20);
+
+                // Get content sections
+                const sections = content.querySelectorAll('.dashboard-card');
+                let yOffset = margin + 40;
+
+                for (const section of sections) {
+                    // Capture section to canvas
+                    const canvas = await html2canvas(section, {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false
+                    });
+
+                    // Calculate dimensions
+                    const imgWidth = pageWidth - (margin * 2);
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                    // Check if we need a new page
+                    if (yOffset + imgHeight > pageHeight - margin) {
+                        pdf.addPage();
+                        yOffset = margin;
+                    }
+
+                    // Add section title if available
+                    const header = section.querySelector('.card-header');
+                    if (header) {
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(12);
+                        pdf.text(header.textContent.trim(), margin, yOffset);
+                        yOffset += 20;
+                    }
+
+                    // Add section content
+                    const imgData = canvas.toDataURL('image/png');
+                    pdf.addImage(imgData, 'PNG', margin, yOffset, imgWidth, imgHeight);
+                    yOffset += imgHeight + 20;
+                }
+
+                // Add footer
+                pdf.setFont('helvetica', 'italic');
+                pdf.setFontSize(8);
+                const pageCount = pdf.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    pdf.setPage(i);
+                    pdf.text(
+                        'Dynasty Beacon - Confidential',
+                        margin,
+                        pageHeight - 20
+                    );
+                    pdf.text(
+                        `Page ${i} of ${pageCount}`,
+                        pageWidth - margin - 40,
+                        pageHeight - 20
+                    );
+                }
+
+                // Save the PDF
+                pdf.save('debtor-report.pdf');
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF report. Please try again.');
+            } finally {
+                // Reset button state
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-download me-2"></i>Download Report';
+                loadingToast.hide();
+            }
+        });
+
+        // Toast for notifications
+        const createToast = (message, type = 'info') => {
+            const toastContainer = document.getElementById('toastContainer') || (() => {
+                const container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'position-fixed bottom-0 end-0 p-3';
+                container.style.zIndex = '1050';
+                document.body.appendChild(container);
+                return container;
+            })();
+
+            const toastElement = document.createElement('div');
+            toastElement.className = `toast align-items-center text-white bg-${type} border-0`;
+            toastElement.setAttribute('role', 'alert');
+            toastElement.setAttribute('aria-live', 'assertive');
+            toastElement.setAttribute('aria-atomic', 'true');
+
+            toastElement.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                            data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+
+            toastContainer.appendChild(toastElement);
+            const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+            toast.show();
+
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        };
+
+        // Export functionality (CSV)
+        document.getElementById('exportCSV').addEventListener('click', function() {
+            try {
+                const table = document.querySelector('table');
+                const rows = Array.from(table.querySelectorAll('tr'));
+
+                // Get headers
+                const headers = Array.from(rows.shift().querySelectorAll('th'))
+                    .map(header => header.textContent.trim());
+
+                // Get data
+                const csvData = rows.map(row => {
+                    return Array.from(row.querySelectorAll('td'))
+                        .map(cell => cell.textContent.trim())
+                        .join(',');
+                });
+
+                // Combine headers and data
+                const csv = [headers.join(','), ...csvData].join('\n');
+
+                // Create download link
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'debtor-transactions.csv';
+                a.click();
+                window.URL.revokeObjectURL(url);
+
+                createToast('CSV exported successfully', 'success');
+            } catch (error) {
+                console.error('Error exporting CSV:', error);
+                createToast('Error exporting CSV', 'danger');
+            }
+        });
+
+        // Initialize page state
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial sort order
+            const urlParams = new URLSearchParams(window.location.search);
+            const sortOrder = urlParams.get('sortOrder');
+            if (sortOrder) {
+                document.getElementById('sortOrder').value = sortOrder;
+            }
+
+            // Set initial search term
+            const searchTerm = urlParams.get('searchTerm');
+            if (searchTerm) {
+                document.getElementById('searchInput').value = searchTerm;
+            }
+
+            // Initialize tooltips
+            const tooltips = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltips.map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+        });
+    </script>
+}

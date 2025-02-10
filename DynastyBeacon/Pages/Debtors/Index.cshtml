@@ -1,0 +1,148 @@
+﻿@page
+@model DynastyBeacon.Pages.Debtors.IndexModel
+@{
+    ViewData["Title"] = "Debtors Master";
+}
+
+<!-- Header section with title and create button -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <a asp-page="Create" class="btn btn-primary" style="background-color: var(--primary-navy); border: none;">
+        <i class="fas fa-plus me-2"></i>New Debtor
+    </a>
+</div>
+
+<!-- Main content card -->
+<div class="dashboard-card">
+    <div class="card-body">
+        <!-- Search and filter section -->
+        <div class="mb-4">
+            <div class="input-group">
+                <span class="input-group-text" style="background-color: var(--cream-bg);">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" id="debtorSearch" class="form-control" placeholder="Search debtors...">
+            </div>
+        </div>
+
+        <!-- Responsive table container -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead style="background-color: var(--cream-bg);">
+                    <tr>
+                        <th>Account Code</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th class="text-end">Balance</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Debtor)
+                    {
+                        <tr>
+                            <td>
+                                <span class="fw-medium">@item.AccountCode</span>
+                            </td>
+                            <td>@item.Name</td>
+                            <td>
+                                <a href="mailto:@item.Email" class="text-decoration-none" style="color: var(--primary-navy);">
+                                    @item.Email
+                                </a>
+                            </td>
+                            <td class="text-end">
+                                <span class="currency-zar fw-medium">
+                                    @item.Balance.ToString("N2")
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <a asp-page="./Edit" asp-route-id="@item.DebtorID"
+                                       class="btn btn-sm btn-outline-primary"
+                                       data-bs-toggle="tooltip"
+                                       title="Edit"
+                                       style="color: var(--primary-navy); border-color: var(--primary-navy);">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a asp-page="./Details" asp-route-id="@item.DebtorID"
+                                       class="btn btn-sm btn-outline-primary"
+                                       data-bs-toggle="tooltip"
+                                       title="View Details"
+                                       style="color: var(--primary-navy); border-color: var(--primary-navy);">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a asp-page="./Delete" asp-route-id="@item.DebtorID"
+                                       class="btn btn-sm btn-outline-danger"
+                                       data-bs-toggle="tooltip"
+                                       title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Enhanced search functionality
+        document.getElementById('debtorSearch').addEventListener('keyup', function() {
+            const searchText = this.value.toLowerCase().trim();
+            const rows = document.querySelectorAll('tbody tr');
+
+            if (searchText === '') {
+                // Show all rows if search is empty
+                rows.forEach(row => row.style.display = '');
+                return;
+            }
+
+            rows.forEach(row => {
+                // Get searchable fields from the row
+                const accountCode = row.cells[0].textContent.toLowerCase().trim();
+                const name = row.cells[1].textContent.toLowerCase().trim();
+                const email = row.cells[2].textContent.toLowerCase().trim();
+
+                // Show row if any field matches the search text
+                const matches =
+                    accountCode.includes(searchText) ||
+                    name.includes(searchText) ||
+                    email.includes(searchText);
+
+                // Highlight matching text if there's a match
+                if (matches) {
+                    row.style.display = '';
+                    highlightMatch(row.cells[0], accountCode, searchText);
+                    highlightMatch(row.cells[1], name, searchText);
+                    highlightMatch(row.cells[2], email, searchText);
+                } else {
+                    row.style.display = 'none';
+                    // Remove highlights if no match
+                    row.cells[0].innerHTML = row.cells[0].textContent;
+                    row.cells[1].innerHTML = row.cells[1].textContent;
+                    row.cells[2].innerHTML = row.cells[2].textContent;
+                }
+            });
+        });
+
+        // Function to highlight matching text
+        function highlightMatch(cell, text, searchText) {
+            if (text.includes(searchText)) {
+                const regex = new RegExp(`(${searchText})`, 'gi');
+                cell.innerHTML = cell.textContent.replace(
+                    regex,
+                    '<span class="bg-warning">$1</span>'
+                );
+            }
+        }
+
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    </script>
+}

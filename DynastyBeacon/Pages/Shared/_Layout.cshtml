@@ -1,0 +1,614 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Dynasty Beacon</title>
+
+    <!-- CSS Libraries -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Theme Colors */
+        :root {
+            --primary-navy: #0A2342;
+            --accent-gold: #C5A368;
+            --cream-bg: #F7F5F0;
+            --text-dark: #2D2D2D;
+            --border-light: #E5E5E5;
+            --card-bg: #FFFFFF;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        /* Dark Mode Colors */
+        [data-theme="dark"] {
+            --primary-navy: #051a36;
+            --accent-gold: #C5A368;
+            --cream-bg: #1c1c1c;
+            --text-dark: #ffffff;
+            --border-light: #2d2d2d;
+            --card-bg: #2a2a2a;
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --action-blue: #0d47a1;
+        }
+
+            /* Dark Mode Specific Styles */
+            [data-theme="dark"] .nav-link i,
+            [data-theme="dark"] .options-menu i,
+            [data-theme="dark"] .sidebar-brand,
+            [data-theme="dark"] .nav-link span,
+            [data-theme="dark"] .dropdown-item,
+            [data-theme="dark"] .page-title,
+            [data-theme="dark"] td,
+            [data-theme="dark"] th {
+                color: #ffffff !important;
+            }
+
+            [data-theme="dark"] .action-btn:not(.delete-btn) {
+                background-color: var(--action-blue) !important;
+                color: #ffffff !important;
+                border: none;
+            }
+
+                [data-theme="dark"] .action-btn:not(.delete-btn):hover {
+                    background-color: var(--accent-gold) !important;
+                    color: var(--primary-navy) !important;
+                }
+
+            [data-theme="dark"] .delete-btn {
+                background-color: #dc3545 !important;
+                color: #ffffff !important;
+                border: none;
+            }
+
+            [data-theme="dark"] .nav-link:hover,
+            [data-theme="dark"] .dropdown-item:hover {
+                background-color: var(--accent-gold) !important;
+                color: var(--primary-navy) !important;
+            }
+
+                [data-theme="dark"] .nav-link:hover i,
+                [data-theme="dark"] .dropdown-item:hover i,
+                [data-theme="dark"] .nav-link:hover span,
+                [data-theme="dark"] .dropdown-item:hover span {
+                    color: var(--primary-navy) !important;
+                }
+
+            [data-theme="dark"] input.form-control {
+                background-color: #2a2a2a;
+                border-color: #3a3a3a;
+                color: #ffffff;
+            }
+
+                [data-theme="dark"] input.form-control:focus {
+                    background-color: #2a2a2a;
+                    border-color: var(--accent-gold);
+                    color: #ffffff;
+                    box-shadow: 0 0 0 0.25rem rgba(197, 163, 104, 0.25);
+                }
+
+            [data-theme="dark"] .dashboard-card {
+                background: #2a2a2a;
+                color: #ffffff;
+            }
+
+            [data-theme="dark"] .text-muted {
+                color: #a0a0a0 !important;
+            }
+
+            [data-theme="dark"] .table {
+                color: #ffffff;
+            }
+
+        /* Base Styles */
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: var(--cream-bg);
+            color: var(--text-dark);
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background: var(--primary-navy);
+            width: 280px;
+            min-height: 100vh;
+            position: fixed;
+            padding: 2rem 1rem;
+            color: var(--cream-bg);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--cream-bg);
+            text-decoration: none;
+            margin-bottom: 2rem;
+            display: block;
+            text-align: center;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Sidebar Toggle Button */
+        .sidebar-toggle {
+            position: absolute;
+            top: 1rem;
+            right: -15px;
+            background: var(--primary-navy);
+            border: 2px solid var(--cream-bg);
+            color: var(--cream-bg);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1001;
+            transition: all 0.3s ease;
+        }
+
+            .sidebar-toggle:hover {
+                background: var(--accent-gold);
+                color: var(--primary-navy);
+            }
+
+        /* Navigation Styles */
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            color: var(--cream-bg) !important;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+            .nav-link i {
+                margin-right: 1rem;
+                width: 20px;
+                text-align: center;
+            }
+
+            .nav-link:hover {
+                background: var(--accent-gold);
+                color: var(--primary-navy) !important;
+            }
+
+        /* Options Menu Styles */
+        .options-menu {
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+            .options-menu .btn-outline-light {
+                width: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+                padding: 0.75rem 1rem;
+                transition: all 0.3s ease;
+            }
+
+                .options-menu .btn-outline-light i {
+                    width: 20px;
+                    text-align: center;
+                    margin-right: 1rem;
+                }
+
+            .options-menu .dropdown-menu {
+                background: var(--primary-navy);
+                border: 1px solid var(--accent-gold);
+                margin-bottom: 1rem;
+                width: 100%;
+            }
+
+            .options-menu .dropdown-item {
+                color: var(--cream-bg);
+                padding: 0.75rem 1rem;
+                display: flex;
+                align-items: center;
+            }
+
+                .options-menu .dropdown-item i {
+                    width: 20px;
+                    text-align: center;
+                    margin-right: 1rem;
+                }
+
+                .options-menu .dropdown-item:hover {
+                    background: var(--accent-gold);
+                    color: var(--primary-navy);
+                }
+
+        /* Collapsed State Styles */
+        .sidebar-collapsed {
+            width: 70px;
+        }
+
+            .sidebar-collapsed .sidebar-brand,
+            .sidebar-collapsed .nav-link span,
+            .sidebar-collapsed .options-menu span {
+                display: none;
+            }
+
+            .sidebar-collapsed .nav-link,
+            .sidebar-collapsed .options-menu .btn {
+                padding: 0.75rem 0;
+                justify-content: center;
+            }
+
+                .sidebar-collapsed .nav-link i,
+                .sidebar-collapsed .options-menu .btn i {
+                    margin: 0;
+                }
+
+            .sidebar-collapsed .options-menu .dropdown-menu {
+                min-width: auto;
+                width: auto;
+            }
+
+            .sidebar-collapsed .options-menu .dropdown-item {
+                padding: 0.75rem;
+                justify-content: center;
+            }
+
+                .sidebar-collapsed .options-menu .dropdown-item i {
+                    margin: 0;
+                }
+
+                .sidebar-collapsed .options-menu .dropdown-item span {
+                    display: none;
+                }
+
+        /* Main Content Area */
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 2rem;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content-expanded {
+            margin-left: 70px;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] .dashboard-card {
+            background: #2a2a2a;
+        }
+
+        [data-theme="dark"] .nav-link:hover {
+            background: var(--accent-gold);
+            color: var(--primary-navy) !important;
+        }
+
+        [data-theme="dark"] .text-muted {
+            color: #a0a0a0 !important;
+        }
+
+        [data-theme="dark"] .table {
+            color: var(--text-dark);
+        }
+
+        [data-theme="dark"] input.form-control {
+            background-color: #2a2a2a;
+            border-color: #3a3a3a;
+            color: var(--text-dark);
+        }
+
+            [data-theme="dark"] input.form-control:focus {
+                background-color: #2a2a2a;
+                border-color: var(--accent-gold);
+                color: var(--text-dark);
+                box-shadow: 0 0 0 0.25rem rgba(197, 163, 104, 0.25);
+            }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-icon {
+            background: var(--primary-navy);
+            color: var(--cream-bg);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        /* Typography */
+        .page-title {
+            font-family: 'Playfair Display', serif;
+            color: var(--text-dark);
+            margin-bottom: 2rem;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        /* Currency Formatting */
+        .currency-zar::before {
+            content: 'R';
+            margin-right: 2px;
+        }
+
+        /* Footer Styles */
+        .footer {
+            color: var(--text-dark);
+            transition: color 0.3s ease;
+        }
+
+        /* Responsive Styles */
+        @@media (max-width: 768px) {
+            .sidebar
+
+        {
+            width: 100%;
+            height: auto;
+            position: relative;
+            min-height: auto;
+        }
+
+        .sidebar-collapsed {
+            width: 100%;
+        }
+
+            .sidebar-collapsed .sidebar-brand,
+            .sidebar-collapsed .nav-link span,
+            .sidebar-collapsed .options-menu span {
+                display: block;
+            }
+
+            .sidebar-collapsed .nav-link i,
+            .sidebar-collapsed .options-menu .btn i {
+                margin-right: 1rem;
+            }
+
+        .main-content {
+            margin-left: 0;
+            padding: 1rem;
+        }
+
+        .main-content-expanded {
+            margin-left: 0;
+        }
+
+        .sidebar-toggle {
+            display: none;
+        }
+
+        body {
+            flex-direction: column;
+        }
+
+        }
+    </style>
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-toggle" onclick="toggleSidebar()">
+            <i class="fas fa-chevron-left"></i>
+        </div>
+
+        <a class="sidebar-brand" asp-page="/Index">Dynasty Beacon</a>
+
+        <ul class="sidebar-nav">
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Index">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Debtors/Index">
+                    <i class="fas fa-users"></i>
+                    <span>Debtors Master</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Enquries/DebtorsEnquiry">
+                    <i class="fas fa-search"></i>
+                    <span>Debtor Enquiry</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Stocks/Index">
+                    <i class="fas fa-boxes"></i>
+                    <span>Stock Master</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Enquries/StockEnquiry">
+                    <i class="fas fa-search"></i>
+                    <span>Stock Enquiry</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/StockAdjustment/Index">
+                    <i class="fas fa-edit"></i>
+                    <span>Stock Adjustment</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" asp-page="/Invoices/CreateInvoice">
+                    <i class="fas fa-file-invoice"></i>
+                    <span>Invoicing</span>
+                </a>
+            </li>
+        </ul>
+
+        <!-- Options Menu -->
+        <div class="options-menu">
+            <div class="dropup d-grid gap-2">
+                <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-cog"></i>
+                    <span>Options</span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="#" id="toggle-mode">
+                            <i class="fas fa-moon"></i>
+                            <span>Toggle Dark Mode</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="/Logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Exit</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        @if (ViewData["Title"] != null)
+        {
+            <h1 class="page-title mb-4">@ViewData["Title"]</h1>
+        }
+
+        @RenderBody()
+
+        @if (ViewData["Title"]?.ToString() == "Dashboard")
+        {
+            <footer class="footer mt-5">
+                <div class="row">
+                    <div class="col-md-12 text-center">
+                        <p class="mb-0">&copy; @DateTime.Now.Year Dynasty Beacon. All rights reserved.</p>
+                        <small class="text-muted">All amounts displayed in South African Rand (ZAR)</small>
+                    </div>
+                </div>
+            </footer>
+        }
+    </main>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Sidebar Toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            const toggleButton = document.querySelector('.sidebar-toggle');
+            const optionsButton = document.querySelector('.options-menu .btn');
+
+            sidebar.classList.toggle('sidebar-collapsed');
+            mainContent.classList.toggle('main-content-expanded');
+
+            // Update toggle button icon
+            toggleButton.innerHTML = sidebar.classList.contains('sidebar-collapsed')
+                ? '<i class="fas fa-chevron-right"></i>'
+                : '<i class="fas fa-chevron-left"></i>';
+
+            // Update options button
+            if (sidebar.classList.contains('sidebar-collapsed')) {
+                optionsButton.innerHTML = '<i class="fas fa-cog"></i>';
+            } else {
+                optionsButton.innerHTML = '<i class="fas fa-cog me-2"></i><span>Options</span>';
+            }
+
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('sidebar-collapsed'));
+        }
+
+        // Dark Mode Toggle
+        document.getElementById('toggle-mode').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.documentElement.setAttribute('data-theme',
+                document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'
+            );
+            localStorage.setItem('theme', document.documentElement.getAttribute('data-theme'));
+        });
+
+        // Initialize UI State
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize theme
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+
+            // Initialize sidebar state
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                const toggleButton = document.querySelector('.sidebar-toggle');
+                const optionsButton = document.querySelector('.options-menu .btn');
+
+                sidebar.classList.add('sidebar-collapsed');
+                mainContent.classList.add('main-content-expanded');
+                toggleButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                optionsButton.innerHTML = '<i class="fas fa-cog"></i>';
+            }
+
+            // Highlight current page
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('.nav-link').forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.style.backgroundColor = 'var(--accent-gold)';
+                    link.style.color = 'var(--primary-navy) !important';
+                }
+            });
+        });
+
+        // Currency Formatting
+        function formatZAR(amount) {
+            return new Intl.NumberFormat('en-ZA', {
+                style: 'currency',
+                currency: 'ZAR',
+                minimumFractionDigits: 2
+            }).format(amount);
+        }
+
+        // Number Formatting
+        function formatNumber(number) {
+            return new Intl.NumberFormat('en-ZA').format(number);
+        }
+
+        // Initialize Bootstrap tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

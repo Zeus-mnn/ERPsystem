@@ -1,0 +1,206 @@
+﻿@page
+@model DynastyBeacon.Pages.Stocks.EditModel
+@{
+    ViewData["Title"] = "Edit Stock Item";
+}
+
+<!-- Header section with breadcrumb -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 mt-2">
+                <li class="breadcrumb-item">
+                    <a asp-page="Index" class="text-decoration-none" style="color: var(--primary-navy);">
+                        <i class="fas fa-boxes me-1"></i>Stock
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">Edit Stock</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Main content -->
+<div class="dashboard-card">
+    <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+        <i class="fas fa-box-open me-2"></i>
+        Stock Information
+    </div>
+    <div class="card-body p-4">
+        @if (!ModelState.IsValid)
+        {
+            <div class="alert alert-danger border-0 shadow-sm">
+                <h5 class="d-flex align-items-center">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Please correct the following errors:
+                </h5>
+                <div asp-validation-summary="All" class="text-danger"></div>
+            </div>
+        }
+
+        <form method="post">
+            <input type="hidden" asp-for="StockInput.StockID" />
+
+            <!-- Read-only information -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label text-muted">Stock Code</label>
+                        <input value="@Model.StockCode" class="form-control bg-light" readonly />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label text-muted">Category</label>
+                        <input value="@Model.Category" class="form-control bg-light" readonly />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Description -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label asp-for="StockInput.StockDescription" class="form-label required"></label>
+                        <input asp-for="StockInput.StockDescription" class="form-control" />
+                        <span asp-validation-for="StockInput.StockDescription" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Information -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="StockInput.Cost" class="form-label required"></label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background-color: var(--cream-bg);">R</span>
+                            <input asp-for="StockInput.Cost"
+                                   class="form-control"
+                                   type="number"
+                                   step="0.01"
+                                   min="0" />
+                        </div>
+                        <span asp-validation-for="StockInput.Cost" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="StockInput.SellingPrice" class="form-label required"></label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background-color: var(--cream-bg);">R</span>
+                            <input asp-for="StockInput.SellingPrice"
+                                   class="form-control"
+                                   type="number"
+                                   step="0.01"
+                                   min="0" />
+                        </div>
+                        <span asp-validation-for="StockInput.SellingPrice" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label text-muted">Stock On Hand</label>
+                        <input value="@Model.StockInput.StockOnHand" class="form-control bg-light" readonly />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label text-muted">Purchases</label>
+                        <input value="@Model.StockInput.QtyPurchased" class="form-control bg-light" readonly />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label class="form-label text-muted">Sales</label>
+                        <input value="@Model.StockInput.QtySold" class="form-control bg-light" readonly />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <button type="submit"
+                            class="btn btn-primary me-2"
+                            style="background-color: var(--primary-navy); border: none;">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                    <a asp-page="Index"
+                       class="btn btn-outline-secondary"
+                       style="border-color: var(--border-light);">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <style>
+        /* Required field indicator */
+        .required:after {
+            content: " *";
+            color: var(--accent-gold);
+        }
+
+        /* Custom styling for form controls */
+        .form-control:focus {
+            border-color: var(--primary-navy);
+            box-shadow: 0 0 0 0.2rem rgba(10, 35, 66, 0.15);
+        }
+
+        /* Read-only inputs */
+        .form-control[readonly] {
+            background-color: var(--cream-bg);
+            opacity: 0.8;
+        }
+    </style>
+
+    <script>
+        $(document).ready(function () {
+            // Format currency inputs to 2 decimal places
+            $('.input-group input[type="number"]').on('blur', function() {
+                var value = $(this).val();
+                if (value) {
+                    $(this).val(parseFloat(value).toFixed(2));
+                }
+            });
+
+            // Validate selling price against cost
+            $('#StockInput_SellingPrice').on('change', function() {
+                var cost = parseFloat($('#StockInput_Cost').val()) || 0;
+                var sellingPrice = parseFloat($(this).val()) || 0;
+
+                if (sellingPrice < cost) {
+                    // Use custom styled alert
+                    Swal.fire({
+                        title: 'Invalid Price',
+                        text: 'Selling price must be greater than or equal to cost.',
+                        icon: 'warning',
+                        confirmButtonColor: 'var(--primary-navy)',
+                        confirmButtonText: 'OK'
+                    });
+                    $(this).val(cost.toFixed(2));
+                }
+            });
+
+            // Add loading indicator on form submit
+            $('form').on('submit', function() {
+                $(this).find('button[type="submit"]')
+                    .prop('disabled', true)
+                    .html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
+            });
+        });
+    </script>
+}

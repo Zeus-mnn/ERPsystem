@@ -1,0 +1,182 @@
+﻿@page
+@model DynastyBeacon.Pages.Stocks.IndexModel
+@{
+    ViewData["Title"] = "Stock Master";
+}
+
+<!-- Header section with title and create button -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    
+    <a asp-page="Create" class="btn btn-primary" style="background-color: var(--primary-navy); border: none;">
+        <i class="fas fa-plus me-2"></i>New Stock Item
+    </a>
+</div>
+
+<!-- Main content card -->
+<div class="dashboard-card">
+    <div class="card-body">
+        <!-- Search and filter section -->
+        <div class="mb-4">
+            <div class="input-group">
+                <span class="input-group-text" style="background-color: var(--cream-bg);">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text"
+                       id="stockSearch"
+                       class="form-control"
+                       placeholder="Search by stock code, description, or category..." />
+            </div>
+        </div>
+
+        <!-- Responsive table container -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead style="background-color: var(--cream-bg);">
+                    <tr>
+                        <th>Stock Code</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th class="text-end">Stock On Hand</th>
+                        <th class="text-end">Cost (R)</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Stock)
+                    {
+                        <tr>
+                            <td>
+                                <span class="fw-medium">@item.StockCode</span>
+                            </td>
+                            <td>@item.StockDescription</td>
+                            <td>
+                                <span class="badge" style="background-color: var(--primary-navy);">
+                                    @item.Category
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                @{
+                                    var stockClass = item.StockOnHand switch
+                                    {
+                                        <= 0 => "text-danger",
+                                        <= 5 => "text-warning",
+                                        _ => "text-success"
+                                    };
+                                }
+                                <span class="fw-medium @stockClass">
+                                    @item.StockOnHand
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="fw-medium">
+                                    @item.Cost.ToString("N2")
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <a asp-page="./Edit"
+                                       asp-route-id="@item.StockID"
+                                       class="btn btn-sm btn-outline-primary"
+                                       data-bs-toggle="tooltip"
+                                       title="Edit"
+                                       style="color: var(--primary-navy); border-color: var(--primary-navy);">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a asp-page="./Details"
+                                       asp-route-id="@item.StockID"
+                                       class="btn btn-sm btn-outline-primary"
+                                       data-bs-toggle="tooltip"
+                                       title="View Details"
+                                       style="color: var(--primary-navy); border-color: var(--primary-navy);">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a asp-page="./Delete"
+                                       asp-route-id="@item.StockID"
+                                       class="btn btn-sm btn-outline-danger"
+                                       data-bs-toggle="tooltip"
+                                       title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Enhanced search functionality
+        document.getElementById('stockSearch').addEventListener('keyup', function() {
+            const searchText = this.value.toLowerCase().trim();
+            const rows = document.querySelectorAll('tbody tr');
+
+            if (searchText === '') {
+                // Show all rows if search is empty
+                rows.forEach(row => row.style.display = '');
+                return;
+            }
+
+            rows.forEach(row => {
+                // Get searchable fields from the row
+                const stockCode = row.cells[0].textContent.toLowerCase().trim();
+                const description = row.cells[1].textContent.toLowerCase().trim();
+                const category = row.cells[2].textContent.toLowerCase().trim();
+
+                // Show row if any field matches the search text
+                const matches =
+                    stockCode.includes(searchText) ||
+                    description.includes(searchText) ||
+                    category.includes(searchText);
+
+                // Highlight matching text if there's a match
+                if (matches) {
+                    row.style.display = '';
+                    highlightMatch(row.cells[0], stockCode, searchText);
+                    highlightMatch(row.cells[1], description, searchText);
+                    highlightMatch(row.cells[2], category, searchText);
+                } else {
+                    row.style.display = 'none';
+                    // Remove highlights if no match
+                    row.cells[0].innerHTML = `<span class="fw-medium">${row.cells[0].textContent}</span>`;
+                    row.cells[1].innerHTML = row.cells[1].textContent;
+                    row.cells[2].innerHTML = `<span class="badge" style="background-color: var(--primary-navy);">${row.cells[2].textContent}</span>`;
+                }
+            });
+        });
+
+        // Function to highlight matching text
+        function highlightMatch(cell, text, searchText) {
+            if (text.includes(searchText)) {
+                const regex = new RegExp(`(${searchText})`, 'gi');
+                let content = cell.textContent;
+
+                // Preserve the original styling while adding highlights
+                if (cell.cellIndex === 0) { // Stock Code
+                    content = `<span class="fw-medium">${content.replace(
+                        regex,
+                        '<span class="bg-warning">$1</span>'
+                    )}</span>`;
+                } else if (cell.cellIndex === 2) { // Category
+                    content = `<span class="badge" style="background-color: var(--primary-navy);">${content.replace(
+                        regex,
+                        '<span class="bg-warning">$1</span>'
+                    )}</span>`;
+                } else {
+                    content = content.replace(regex, '<span class="bg-warning">$1</span>');
+                }
+
+                cell.innerHTML = content;
+            }
+        }
+
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    </script>
+}

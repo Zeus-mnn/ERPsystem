@@ -1,0 +1,300 @@
+﻿@page
+@model DynastyBeacon.Pages.Debtors.DetailsModel
+@{
+    ViewData["Title"] = "Debtor Details";
+}
+
+<!-- Header section with breadcrumb -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+       
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 mt-2">
+                <li class="breadcrumb-item">
+                    <a asp-page="Index" class="text-decoration-none" style="color: var(--primary-navy);">
+                        <i class="fas fa-users me-1"></i>Debtors
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">@Model.Debtor.Name</li>
+            </ol>
+        </nav>
+    </div>
+    <div>
+        <a asp-page="./Edit" asp-route-id="@Model.Debtor.DebtorID"
+           class="btn btn-primary me-2"
+           style="background-color: var(--primary-navy); border: none;">
+            <i class="fas fa-edit me-2"></i>Edit Debtor
+        </a>
+        <a asp-page="./Index"
+           class="btn btn-outline-secondary"
+           style="border-color: var(--border-light);">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Basic Information Card -->
+    <div class="col-md-6 mb-4">
+        <div class="dashboard-card h-100">
+            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                <i class="fas fa-info-circle me-2"></i>Basic Information
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Account Code</label>
+                        <p class="fw-medium">@Model.Debtor.AccountCode</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Tier</label>
+                        <p><span class="badge" style="background-color: var(--accent-gold);">@Model.Debtor.Tier</span></p>
+                    </div>
+                    <div class="col-12">
+                        <label class="text-muted small">Name</label>
+                        <p class="fw-medium">@Model.Debtor.Name</p>
+                    </div>
+                    <div class="col-12">
+                        <label class="text-muted small">Address</label>
+                        <p class="fw-medium">@Model.Debtor.Address</p>
+                    </div>
+                    <div class="col-12">
+                        <label class="text-muted small">Alternative Address</label>
+                        <p class="fw-medium">@(Model.Debtor.AlternativeAddress ?? "-")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact & Financial Information Card -->
+    <div class="col-md-6 mb-4">
+        <div class="dashboard-card h-100">
+            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                <i class="fas fa-chart-line me-2"></i>Contact & Financial Information
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Phone</label>
+                        <p class="fw-medium">
+                            <a href="tel:@Model.Debtor.Phone" class="text-decoration-none" style="color: var(--primary-navy);">
+                                @Model.Debtor.Phone
+                            </a>
+                        </p>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Email</label>
+                        <p class="fw-medium">
+                            <a href="mailto:@Model.Debtor.Email" class="text-decoration-none" style="color: var(--primary-navy);">
+                                @Model.Debtor.Email
+                            </a>
+                        </p>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Current Balance</label>
+                        <p class="fw-medium">R @Model.Debtor.Balance.ToString("N2")</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Sales YTD</label>
+                        <p class="fw-medium">R @Model.Debtor.SalesYearToDate.ToString("N2")</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Cost YTD</label>
+                        <p class="fw-medium">R @Model.Debtor.CostYearToDate.ToString("N2")</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Profit Margin</label>
+                        @{
+                            var margin = Model.Debtor.SalesYearToDate > 0
+                            ? ((Model.Debtor.SalesYearToDate - Model.Debtor.CostYearToDate) / Model.Debtor.SalesYearToDate * 100)
+                            : 0;
+                        }
+                        <p class="fw-medium">@margin.ToString("N1")%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Performance Chart -->
+    <div class="col-12 mb-4">
+        <div class="dashboard-card">
+            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                <i class="fas fa-chart-bar me-2"></i>Financial Performance
+            </div>
+            <div class="card-body">
+                <div id="financialChart" style="height: 300px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Information Card -->
+    <div class="col-12 mb-4">
+        <div class="dashboard-card">
+            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                <i class="fas fa-history me-2"></i>Audit Information
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="text-muted small">Created By</label>
+                        <p class="fw-medium">@Model.Debtor.CreatedBy</p>
+                        <label class="text-muted small">Created On</label>
+                        <p class="fw-medium">@Model.Debtor.CreatedOn.ToString("dd MMM yyyy HH:mm")</p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Last Updated By</label>
+                        <p class="fw-medium">@Model.Debtor.UpdatedBy</p>
+                        <label class="text-muted small">Last Updated On</label>
+                        <p class="fw-medium">@Model.Debtor.UpdatedOn?.ToString("dd MMM yyyy HH:mm")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('financialChart').getContext('2d');
+
+            // Prepare data
+            const chartData = {
+                labels: ['Sales YTD', 'Cost YTD', 'Current Balance'],
+                datasets: [{
+                    data: [
+        @Model.Debtor.SalesYearToDate,
+        @Model.Debtor.CostYearToDate,
+        @Model.Debtor.Balance
+                    ],
+                    backgroundColor: [
+                        '#0A2342',  // primary-navy for Sales
+                        '#C5A368',  // accent-gold for Cost
+                        '#2D2D2D'   // text-dark for Balance
+                    ],
+                    borderRadius: 6,
+                    borderWidth: 0,
+                    barThickness: 'flex',
+                    maxBarThickness: 100
+                }]
+            };
+
+            // Chart configuration
+            const config = {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#0A2342',
+                            titleColor: '#F7F5F0',
+                            bodyColor: '#F7F5F0',
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    const formattedValue = new Intl.NumberFormat('en-ZA', {
+                                        style: 'currency',
+                                        currency: 'ZAR',
+                                        minimumFractionDigits: 2
+                                    }).format(value);
+                                    return formattedValue;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R ' + value.toLocaleString('en-ZA');
+                                },
+                                font: {
+                                    family: "'Lato', sans-serif"
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Lato', sans-serif"
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            };
+
+            // Create the chart
+            const chart = new Chart(ctx, config);
+
+            // Add metrics summary below chart
+            const metrics = document.createElement('div');
+            metrics.className = 'row mt-4 text-center';
+
+            // Calculate profit/loss
+            const profit = @Model.Debtor.SalesYearToDate - @Model.Debtor.CostYearToDate;
+            const profitMargin = @Model.Debtor.SalesYearToDate > 0
+                ? (profit / @Model.Debtor.SalesYearToDate * 100).toFixed(1)
+                : 0;
+
+            metrics.innerHTML = `
+                <div class="col-md-4">
+                    <h6 class="text-muted mb-1">Gross Profit</h6>
+                    <h4 class="mb-0 ${profit >= 0 ? 'text-success' : 'text-danger'}">
+                        R ${Math.abs(profit).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </h4>
+                    <small class="text-muted">
+                        <i class="fas fa-${profit >= 0 ? 'arrow-up text-success' : 'arrow-down text-danger'}"></i>
+                        ${Math.abs(profitMargin)}% Margin
+                    </small>
+                </div>
+            `;
+
+            document.getElementById('financialChart').parentNode.appendChild(metrics);
+        });
+    </script>
+
+    <style>
+        .dashboard-card {
+            transition: all 0.3s ease;
+        }
+
+            .dashboard-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            }
+
+        .text-success {
+            color: #28a745 !important;
+        }
+
+        .text-danger {
+            color: #dc3545 !important;
+        }
+
+        .text-warning {
+            color: #ffc107 !important;
+        }
+    </style>
+}

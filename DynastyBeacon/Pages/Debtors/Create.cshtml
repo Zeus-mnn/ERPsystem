@@ -1,0 +1,204 @@
+﻿@page
+@model DynastyBeacon.Pages.Debtors.CreateModel
+@{
+    ViewData["Title"] = "Create New Debtor";
+}
+
+<!-- Header section with breadcrumb -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 mt-2">
+                <li class="breadcrumb-item">
+                    <a asp-page="Index" class="text-decoration-none" style="color: var(--primary-navy);">
+                        <i class="fas fa-users me-1"></i>Debtors
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">Create New</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-xl-8">
+        <div class="dashboard-card">
+            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                <i class="fas fa-user-plus me-2"></i>
+                Debtor Information
+            </div>
+            <div class="card-body p-4">
+                @if (!ModelState.IsValid)
+                {
+                    <div class="alert alert-danger border-0 shadow-sm mb-4">
+                        <h5 class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Please correct the following errors:
+                        </h5>
+                        <div asp-validation-summary="All" class="text-danger"></div>
+                    </div>
+                }
+
+                <form method="post" class="needs-validation" novalidate>
+                    <!-- Hidden fields -->
+                    <input type="hidden" asp-for="DebtorInput.CreatedBy" />
+                    <input type="hidden" asp-for="DebtorInput.CreatedOn" />
+
+                    <!-- Basic Information -->
+                    <div class="mb-4">
+                        <h5 class="mb-3" style="color: var(--primary-navy);">Basic Information</h5>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label asp-for="DebtorInput.Name" class="form-label required">Name</label>
+                                <input asp-for="DebtorInput.Name" class="form-control" placeholder="Enter debtor name" />
+                                <span asp-validation-for="DebtorInput.Name" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="DebtorInput.Address" class="form-label required">Address</label>
+                                <input asp-for="DebtorInput.Address" class="form-control" placeholder="Enter primary address" />
+                                <span asp-validation-for="DebtorInput.Address" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="DebtorInput.AlternativeAddress" class="form-label">Alternative Address</label>
+                                <input asp-for="DebtorInput.AlternativeAddress" class="form-control" placeholder="Enter alternative address (optional)" />
+                                <span asp-validation-for="DebtorInput.AlternativeAddress" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information -->
+                    <div class="mb-4">
+                        <h5 class="mb-3" style="color: var(--primary-navy);">Contact Information</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="DebtorInput.Phone" class="form-label required">Phone</label>
+                                <input asp-for="DebtorInput.Phone" class="form-control" type="tel" placeholder="(000) 000-0000" />
+                                <span asp-validation-for="DebtorInput.Phone" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="DebtorInput.Email" class="form-label required">Email</label>
+                                <input asp-for="DebtorInput.Email" class="form-control" type="email" placeholder="email@example.com" />
+                                <span asp-validation-for="DebtorInput.Email" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Information -->
+                    <div class="mb-4">
+                        <h5 class="mb-3" style="color: var(--primary-navy);">Financial Information</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="DebtorInput.Balance" class="form-label required">Balance</label>
+                                <div class="input-group">
+                                    <span class="input-group-text" style="background-color: var(--cream-bg);">R</span>
+                                    <input asp-for="DebtorInput.Balance"
+                                           class="form-control"
+                                           type="number"
+                                           step="0.01"
+                                           min="0"
+                                           value="0"
+                                           placeholder="0.00" />
+                                </div>
+                                <span asp-validation-for="DebtorInput.Balance" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="DebtorInput.Tier" class="form-label">Tier</label>
+                                <select asp-for="DebtorInput.Tier"
+                                        class="form-select"
+                                        style="border-color: var(--border-light);">
+                                    <option value="">Select Tier</option>
+                                    <option value="Premium">Premium</option>
+                                    <option value="Standard">Standard</option>
+                                    <option value="Basic">Basic</option>
+                                </select>
+                                <span asp-validation-for="DebtorInput.Tier" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="submit"
+                                class="btn btn-primary"
+                                style="background-color: var(--primary-navy); border: none;">
+                            <i class="fas fa-save me-2"></i>Create Debtor
+                        </button>
+                        <a asp-page="./Index"
+                           class="btn btn-outline-secondary"
+                           style="border-color: var(--border-light);">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <style>
+        .required:after {
+            content: " *";
+            color: var(--accent-gold);
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--primary-navy);
+            box-shadow: 0 0 0 0.2rem rgba(10, 35, 66, 0.15);
+        }
+
+        .input-group-text {
+            border-color: var(--border-light);
+        }
+
+        .form-control::placeholder,
+        .form-select::placeholder {
+            color: #adb5bd;
+            opacity: 0.8;
+        }
+    </style>
+
+    <script>
+        $(document).ready(function () {
+            // Format currency inputs
+            $('#DebtorInput_Balance').on('blur', function() {
+                var value = $(this).val();
+                if (value) {
+                    $(this).val(parseFloat(value).toFixed(2));
+                }
+            });
+
+            // Phone number formatting
+            $('#DebtorInput_Phone').on('input', function() {
+                var value = $(this).val().replace(/\D/g, '');
+                if (value.length > 10) {
+                    value = value.substr(0, 10);
+                }
+                var formattedValue = '';
+                if (value.length >= 6) {
+                    formattedValue = `(${value.substr(0,3)}) ${value.substr(3,3)}-${value.substr(6)}`;
+                } else if (value.length >= 3) {
+                    formattedValue = `(${value.substr(0,3)}) ${value.substr(3)}`;
+                } else {
+                    formattedValue = value;
+                }
+                $(this).val(formattedValue);
+            });
+
+            // Add loading state to submit button
+            $('form').on('submit', function() {
+                if ($(this).valid()) {
+                    $(this).find('button[type="submit"]')
+                        .prop('disabled', true)
+                        .html('<i class="fas fa-spinner fa-spin me-2"></i>Creating...');
+                }
+            });
+        });
+    </script>
+}

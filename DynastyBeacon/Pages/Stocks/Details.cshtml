@@ -1,0 +1,365 @@
+﻿@page
+@model DynastyBeacon.Pages.Stocks.DetailsModel
+@{
+    ViewData["Title"] = "Stock Details";
+}
+
+<!-- Header section with breadcrumb -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 mt-2">
+                <li class="breadcrumb-item">
+                    <a asp-page="Index" class="text-decoration-none" style="color: var(--primary-navy);">
+                        <i class="fas fa-boxes me-1"></i>Stock
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">@Model.Stock.StockCode</li>
+            </ol>
+        </nav>
+    </div>
+    <div>
+        <a asp-page="./Edit" asp-route-id="@Model.Stock.StockID"
+           class="btn btn-primary me-2"
+           style="background-color: var(--primary-navy); border: none;">
+            <i class="fas fa-edit me-2"></i>Edit Stock
+        </a>
+        <a asp-page="./Index"
+           class="btn btn-outline-secondary"
+           style="border-color: var(--border-light);">
+            <i class="fas fa-arrow-left me-2"></i>Back to List
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Basic Information Card -->
+    <div class="col-md-6 mb-4">
+        <div class="dashboard-card h-100">
+            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                <i class="fas fa-info-circle me-2"></i>Basic Information
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Stock Code</label>
+                        <p class="fw-medium">@Model.Stock.StockCode</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Category</label>
+                        <p class="fw-medium">
+                            <span class="badge" style="background-color: var(--primary-navy);">
+                                @Model.Stock.Category
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-12">
+                        <label class="text-muted small">Description</label>
+                        <p class="fw-medium">@Model.Stock.StockDescription</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Cost Price</label>
+                        <p class="fw-medium">R @Model.Stock.Cost.ToString("N2")</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Selling Price</label>
+                        <p class="fw-medium">R @Model.Stock.SellingPrice.ToString("N2")</p>
+                    </div>
+                    <div class="col-12">
+                        <label class="text-muted small">Stock Status</label>
+                        <p class="fw-medium @Model.GetStockStatusClass()">
+                            <i class="fas @(Model.StockStatus == "In Stock" ? "fa-check-circle" : "fa-exclamation-circle") me-1"></i>
+                            @Model.StockStatus
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Movement Card -->
+    <div class="col-md-6 mb-4">
+        <div class="dashboard-card h-100">
+            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                <i class="fas fa-chart-line me-2"></i>Stock Movement
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-4">
+                        <label class="text-muted small">Stock On Hand</label>
+                        <p class="fw-medium">@Model.Stock.StockOnHand</p>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="text-muted small">Total Purchases</label>
+                        <p class="fw-medium">@Model.Stock.QtyPurchased</p>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="text-muted small">Total Sales</label>
+                        <p class="fw-medium">@Model.Stock.QtySold</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Stock Value</label>
+                        <p class="fw-medium">R @((Model.Stock.Cost * Model.Stock.StockOnHand).ToString("N2"))</p>
+                        <small class="text-muted">Excl. VAT</small>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Stock Value (Incl. VAT)</label>
+                        <p class="fw-medium">R @Model.TotalValueIncVAT.ToString("N2")</p>
+                        <small class="text-muted">Incl. 15% VAT</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Chart Card -->
+    <div class="col-12 mb-4">
+        <div class="dashboard-card">
+            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                <i class="fas fa-chart-bar me-2"></i>Performance Analysis
+                <small class="ms-2 text-light">(Year to Date)</small>
+            </div>
+            <div class="card-body">
+                <!-- Chart Container -->
+                <div style="height: 300px; position: relative;">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+                
+                <!-- Additional Statistics -->
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h6 class="text-muted mb-1">Total Cost</h6>
+                            <h4 class="mb-0">R @Model.Stock.TotalPurchasesExclVat.ToString("N2")</h4>
+                            <small class="text-muted">Excl. VAT</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h6 class="text-muted mb-1">Total Sales</h6>
+                            <h4 class="mb-0">R @Model.Stock.TotalSalesExclVat.ToString("N2")</h4>
+                            <small class="text-muted">Excl. VAT</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h6 class="text-muted mb-1">Gross Profit</h6>
+                            <h4 class="mb-0 @(Model.GrossProfit >= 0 ? "text-success" : "text-danger")">
+                                R @Math.Abs(Model.GrossProfit).ToString("N2")
+                                @if (Model.GrossProfit < 0)
+                                {
+                                    <small>(Loss)</small>
+                                }
+                            </h4>
+                            <small class="text-muted">
+                                Margin: <span class="@(Model.ProfitMargin >= 0 ? "text-success" : "text-danger")">
+                                    @Model.ProfitMargin.ToString("N1")%
+                                </span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Information Card -->
+    <div class="col-12 mb-4">
+        <div class="dashboard-card">
+            <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
+                <i class="fas fa-history me-2"></i>Audit Information
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="text-muted small">Created By</label>
+                        <p class="fw-medium">@Model.Stock.CreatedBy</p>
+                        <label class="text-muted small">Created On</label>
+                        <p class="fw-medium">@Model.Stock.CreatedOn.ToString("dd MMM yyyy HH:mm")</p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Last Updated By</label>
+                        <p class="fw-medium">@(Model.Stock.UpdatedBy ?? "-")</p>
+                        <label class="text-muted small">Last Updated On</label>
+                        <p class="fw-medium">
+                            @(Model.Stock.UpdatedOn?.ToString("dd MMM yyyy HH:mm") ?? "-")
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+
+            // Prepare the data
+            const data = {
+                labels: ['Cost YTD', 'Sales YTD'],
+                datasets: [{
+                    data: [@Model.Stock.TotalPurchasesExclVat, @Model.Stock.TotalSalesExclVat],
+                    backgroundColor: ['#C5A368', '#0A2342'],  // accent-gold, primary-navy
+                    borderWidth: 0,
+                    borderRadius: 6,
+                    barThickness: 'flex',
+                    maxBarThickness: 100
+                }]
+            };
+
+            // Chart configuration
+            const config = {
+                type: 'bar',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#0A2342',
+                            titleColor: '#F7F5F0',
+                            bodyColor: '#F7F5F0',
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return 'R ' + context.raw.toLocaleString('en-ZA', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R ' + value.toLocaleString('en-ZA');
+                                },
+                                font: {
+                                    family: "'Lato', sans-serif"
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Lato', sans-serif"
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 2000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            };
+
+            // Create the chart
+            const chart = new Chart(ctx, config);
+
+            // Add percentage difference indicator
+            const costValue = @Model.Stock.TotalPurchasesExclVat;
+            const salesValue = @Model.Stock.TotalSalesExclVat;
+
+            if (costValue > 0) {
+                const profitMargin = ((salesValue - costValue) / costValue * 100).toFixed(1);
+                const profitElement = document.createElement('div');
+                profitElement.className = `text-${profitMargin > 0 ? 'success' : 'danger'} text-center mt-3`;
+                profitElement.innerHTML = `
+                    <i class="fas fa-${profitMargin > 0 ? 'arrow-up' : 'arrow-down'} me-1"></i>
+                    ${Math.abs(profitMargin)}% ${profitMargin > 0 ? 'Profit Margin' : 'Loss Margin'}
+                `;
+                document.getElementById('performanceChart').parentNode.appendChild(profitElement);
+            }
+
+            // Add hover effect to dashboard cards
+            document.querySelectorAll('.dashboard-card').forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                    this.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+                    this.style.transition = 'all 0.3s ease';
+                });
+
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                    this.style.transition = 'all 0.3s ease';
+                });
+            });
+        });
+    </script>
+
+    <style>
+        /* Custom styles for the stock details page */
+        .dashboard-card {
+            transition: all 0.3s ease;
+            background: white;
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            border-top-left-radius: 1rem !important;
+            border-top-right-radius: 1rem !important;
+            border-bottom: none;
+        }
+
+        .text-success {
+            color: #28a745 !important;
+        }
+
+        .text-danger {
+            color: #dc3545 !important;
+        }
+
+        .text-warning {
+            color: #ffc107 !important;
+        }
+
+        .badge {
+            padding: 0.5em 1em;
+            font-weight: 500;
+        }
+
+        /* Animation for value changes */
+        .fw-medium {
+            transition: color 0.3s ease;
+        }
+
+        /* Responsive font sizes */
+        @@media (max-width: 768px) {
+            h4
+
+        {
+            font-size: 1.2rem;
+        }
+
+        .card-title {
+            font-size: 1rem;
+        }
+
+        .small {
+            font-size: 0.8rem;
+        }
+
+        }
+    </style>
+}
