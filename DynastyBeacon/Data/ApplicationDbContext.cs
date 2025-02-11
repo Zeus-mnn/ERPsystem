@@ -15,6 +15,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<InvoiceHeader> InvoiceHeaders { get; set; }
     public DbSet<InvoiceDetail> InvoiceDetails { get; set; }
 
+
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -135,6 +137,14 @@ public class ApplicationDbContext : DbContext
                 .WithMany(p => p.DebtorTransactions)
                 .HasForeignKey(d => d.DebtorID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.Property(e => e.ID)
+       .UseIdentityColumn()
+       .IsRequired();
+
+            entity.Property(e => e.TransactionCode)
+                .HasComputedColumnSql("'TRX-' + RIGHT('00000' + CAST(ID AS NVARCHAR(10)), 5)", stored: true)
+                .IsRequired();
         });
 
         // Configure StockTransaction
@@ -161,39 +171,103 @@ public class ApplicationDbContext : DbContext
                 .WithMany(p => p.StockTransactions)
                 .HasForeignKey(d => d.StockID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.Property(e => e.ID)
+       .UseIdentityColumn()
+       .IsRequired();
+
+            entity.Property(e => e.TransactionCode)
+                .HasComputedColumnSql("'STX-' + RIGHT('00000' + CAST(ID AS NVARCHAR(10)), 5)", stored: true)
+                .IsRequired();
         });
 
         // Configure InvoiceHeader
         modelBuilder.Entity<InvoiceHeader>(entity =>
         {
             entity.ToTable("InvoiceHeader");
-            entity.HasKey(e => e.InvoiceID);
-            entity.Property(e => e.InvoiceNo).IsRequired();
-            entity.Property(e => e.TotalSellAmountExclVAT).HasPrecision(18, 2);
-            entity.Property(e => e.VAT).HasPrecision(18, 2);
-            entity.Property(e => e.TotalCost).HasPrecision(18, 2);
-            entity.HasIndex(e => e.InvoiceDate);
-            entity.HasIndex(e => e.DebtorID);
-            entity.HasIndex(e => e.InvoiceNo);
 
+            // Primary key
+            entity.HasKey(e => e.InvoiceID);
+
+            // Configure ID as identity column
+            entity.Property(e => e.ID)
+                .UseIdentityColumn()
+                .IsRequired();
+
+            // Configure InvoiceNo as computed column
+            entity.Property(e => e.InvoiceNo)
+                .HasComputedColumnSql("'INV-' + RIGHT('00000' + CAST(ID AS NVARCHAR(10)), 5)", stored: true)
+                .IsRequired();
+
+            // Configure decimal precision
+            entity.Property(e => e.TotalSellAmountExclVAT)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            entity.Property(e => e.VAT)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            entity.Property(e => e.TotalCost)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            // Configure dates
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("SYSDATETIME()")
+                .IsRequired();
+
+            entity.Property(e => e.UpdatedOn);
+
+            // Relationships
             entity.HasOne(d => d.Debtor)
                 .WithMany(p => p.Invoices)
                 .HasForeignKey(d => d.DebtorID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes
+            entity.HasIndex(e => e.InvoiceDate);
+            entity.HasIndex(e => e.DebtorID);
+            entity.HasIndex(e => e.InvoiceNo).IsUnique();
         });
 
         // Configure InvoiceDetail
         modelBuilder.Entity<InvoiceDetail>(entity =>
         {
             entity.ToTable("InvoiceDetail");
-            entity.HasKey(e => e.InvoiceDetailID);
-            entity.Property(e => e.UnitCost).HasPrecision(18, 2);
-            entity.Property(e => e.UnitSell).HasPrecision(18, 2);
-            entity.Property(e => e.Disc).HasPrecision(18, 2);
-            entity.Property(e => e.Total).HasPrecision(18, 2);
-            entity.HasIndex(e => e.InvoiceID);
-            entity.HasIndex(e => e.StockID);
 
+            // Primary key
+            entity.HasKey(e => e.InvoiceDetailID);
+
+            // Configure decimal precision
+            entity.Property(e => e.UnitCost)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            entity.Property(e => e.UnitSell)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            entity.Property(e => e.Disc)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            entity.Property(e => e.Total)
+                .HasPrecision(18, 2)
+                .IsRequired();
+
+            // Configure dates
+            entity.Property(e => e.CreatedOn)
+                .HasDefaultValueSql("SYSDATETIME()")
+                .IsRequired();
+
+            entity.Property(e => e.UpdatedOn);
+
+            // Configure quantity validation
+            entity.Property(e => e.QtySold)
+                .IsRequired();
+
+            // Relationships
             entity.HasOne(d => d.InvoiceHeader)
                 .WithMany(p => p.InvoiceDetails)
                 .HasForeignKey(d => d.InvoiceID)
@@ -203,6 +277,10 @@ public class ApplicationDbContext : DbContext
                 .WithMany(p => p.InvoiceDetails)
                 .HasForeignKey(d => d.StockID)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes
+            entity.HasIndex(e => e.InvoiceID);
+            entity.HasIndex(e => e.StockID);
         });
     }
 }

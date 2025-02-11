@@ -1,10 +1,14 @@
-﻿namespace DynastyBeacon.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace DynastyBeacon.Models
 {
     public class StockTransaction
     {
         public Guid TransactionID { get; set; }
-        //public int ID { get; set; }
-        //public string TransactionCode { get; set; }
+        public int ID { get; set; }
+
+        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+        public string TransactionCode { get; set; }
         public Guid StockID { get; set; }
         public DateTime TransactionDate { get; set; }
         public string TransactionType { get; set; }

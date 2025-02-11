@@ -10,7 +10,7 @@ namespace DynastyBeacon.Pages.Invoices
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CreateInvoiceModel> _logger;
-        private const decimal VAT_RATE = 0.15m; // 15% VAT rate
+        private const decimal VAT_RATE = 0.15m;
 
         public CreateInvoiceModel(ApplicationDbContext context, ILogger<CreateInvoiceModel> logger)
         {
@@ -19,40 +19,12 @@ namespace DynastyBeacon.Pages.Invoices
         }
 
         [BindProperty]
-        public InvoiceInputModel Input { get; set; }
-
-        public class InvoiceInputModel
-        {
-            [Required]
-            public Guid DebtorID { get; set; }
-
-            [Required]
-            public DateTime InvoiceDate { get; set; } = DateTime.Now;
-
-            [Required]
-            public List<InvoiceLineItem> LineItems { get; set; } = new();
-
-            public decimal SubTotal => LineItems?.Sum(x => x.Total) ?? 0;
-            public decimal VatAmount => SubTotal * VAT_RATE;
-            public decimal GrandTotal => SubTotal + VatAmount;
-        }
-
-        public class InvoiceLineItem
-        {
-            public Guid StockID { get; set; }
-            public string StockCode { get; set; }
-            public string Description { get; set; }
-            public int Quantity { get; set; }
-            public decimal UnitPrice { get; set; }
-            public decimal Discount { get; set; }
-            public decimal Total => (Quantity * UnitPrice) - Discount;
-            public decimal UnitCost { get; set; } // Hidden from view, used for calculations
-        }
+        public InvoiceInputModel Input { get; set; } = new();
 
         [BindProperty(SupportsGet = true)]
-        public string SearchTerm { get; set; }
+        public string? SearchTerm { get; set; }
 
-        public Debtor SelectedDebtor { get; set; }
+        public Debtor? SelectedDebtor { get; set; }
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -61,6 +33,9 @@ namespace DynastyBeacon.Pages.Invoices
 
         public async Task<JsonResult> OnGetSearchDebtorsAsync(string searchTerm)
         {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return new JsonResult(Array.Empty<object>());
+
             var debtors = await _context.Debtors
                 .Where(d => d.Name.Contains(searchTerm) ||
                            d.AccountCode.Contains(searchTerm) ||
@@ -81,6 +56,9 @@ namespace DynastyBeacon.Pages.Invoices
 
         public async Task<JsonResult> OnGetSearchStockAsync(string searchTerm)
         {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return new JsonResult(Array.Empty<object>());
+
             var stocks = await _context.Stocks
                 .Where(s => s.StockCode.Contains(searchTerm) ||
                            s.StockDescription.Contains(searchTerm))
@@ -115,142 +93,202 @@ namespace DynastyBeacon.Pages.Invoices
                 })
                 .FirstOrDefaultAsync();
 
+            if (debtor == null)
+                return new JsonResult(new { error = "Debtor not found" });
+
             return new JsonResult(debtor);
         }
 
-        public async Task<JsonResult> OnGetStockDetailsAsync(Guid stockId)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> OnPostProcessInvoiceAsync([FromBody] InvoiceInputModel model)
         {
-            var stock = await _context.Stocks
-                .Where(s => s.StockID == stockId)
-                .Select(s => new
-                {
-                    s.StockID,
-                    s.StockCode,
-                    s.StockDescription,
-                    s.SellingPrice,
-                    s.Cost,
-                    s.StockOnHand
-                })
-                .FirstOrDefaultAsync();
-
-            return new JsonResult(stock);
-        }
-
-        public async Task<IActionResult> OnPostProcessInvoiceAsync(InvoiceInputModel input)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Create Invoice Header
-                var invoiceHeader = new InvoiceHeader
+                // Clear irrelevant validation errors
+                ModelState.Remove("SearchTerm");
+
+                if (!ModelState.IsValid)
                 {
-                    InvoiceID = Guid.NewGuid(),
-                    DebtorID = input.DebtorID,
-                    InvoiceDate = input.InvoiceDate,
-                    TotalSellAmountExclVAT = input.SubTotal,
-                    VAT = input.VatAmount,
-                    TotalCost = input.LineItems.Sum(x => x.UnitCost * x.Quantity),
-                    CreatedOn = DateTime.Now
-                };
-
-                _context.InvoiceHeaders.Add(invoiceHeader);
-
-                // 2. Create Invoice Details
-                foreach (var item in input.LineItems)
-                {
-                    var detail = new InvoiceDetail
-                    {
-                        InvoiceDetailID = Guid.NewGuid(),
-                        InvoiceID = invoiceHeader.InvoiceID,
-                        StockID = item.StockID,
-                        QtySold = item.Quantity,
-                        UnitCost = item.UnitCost,
-                        UnitSell = item.UnitPrice,
-                        Disc = item.Discount,
-                        Total = item.Total,
-                        CreatedOn = DateTime.Now
-                    };
-
-                    _context.InvoiceDetails.Add(detail);
-
-                    // 3. Update Stock
-                    var stock = await _context.Stocks.FindAsync(item.StockID);
-                    if (stock == null) throw new Exception($"Stock {item.StockCode} not found");
-
-                    stock.StockOnHand -= item.Quantity;
-                    stock.QtySold += item.Quantity;
-                    stock.TotalSalesExclVat += item.Total;
-                    stock.UpdatedBy = "System";
-                    stock.UpdatedOn = DateTime.Now;
-
-                    // 4. Create Stock Transaction
-                    var stockTransaction = new StockTransaction
-                    {
-                        TransactionID = Guid.NewGuid(),
-                        StockID = item.StockID,
-                        TransactionDate = DateTime.Now,
-                        TransactionType = "SALE",
-                        DocumentNo = invoiceHeader.InvoiceNo,
-                        Qty = item.Quantity,
-                        UnitCost = item.UnitCost,
-                        UnitSell = item.UnitPrice,
-                        CreatedOn = DateTime.Now
-                    };
-
-                    _context.StockTransactions.Add(stockTransaction);
+                    var errors = string.Join(", ", ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage));
+                    _logger.LogError("Invalid model state: {Errors}", errors);
+                    return BadRequest(new { error = errors });
                 }
 
-                // 5. Update Debtor
-                var debtor = await _context.Debtors.FindAsync(input.DebtorID);
-                if (debtor == null) throw new Exception("Debtor not found");
-
-                debtor.Balance += input.GrandTotal;
-                debtor.SalesYearToDate += input.SubTotal;
-                debtor.CostYearToDate += input.LineItems.Sum(x => x.UnitCost * x.Quantity);
-                debtor.UpdatedBy = "System";
-                debtor.UpdatedOn = DateTime.Now;
-
-                // 6. Create Debtor Transaction
-                var debtorTransaction = new DebtorTransaction
+                if (model.LineItems == null || !model.LineItems.Any())
                 {
-                    TransactionID = Guid.NewGuid(),
-                    DebtorID = input.DebtorID,
-                    TransactionDate = DateTime.Now,
-                    TransactionType = "SALE",
-                    DocumentNo = invoiceHeader.InvoiceNo,
-                    GrossTransactionValue = input.GrandTotal,
-                    VatValue = input.VatAmount,
-                    CreatedOn = DateTime.Now
-                };
+                    return BadRequest(new { error = "At least one line item is required" });
+                }
 
-                _context.DebtorTransactions.Add(debtorTransaction);
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    // Get stock items and validate
+                    var stockIds = model.LineItems.Select(x => x.StockID).ToList();
+                    var stocks = await _context.Stocks
+                        .Where(s => stockIds.Contains(s.StockID))
+                        .ToDictionaryAsync(s => s.StockID, s => s);
 
-                // Save all changes
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                    // Validate all stocks exist and have sufficient quantity
+                    foreach (var item in model.LineItems)
+                    {
+                        if (!stocks.TryGetValue(item.StockID, out var stock))
+                        {
+                            return BadRequest(new { error = $"Stock not found: {item.StockID}" });
+                        }
 
-                // Generate and return invoice PDF
-                await GenerateInvoicePdf(invoiceHeader, input.LineItems);
+                        if (stock.StockOnHand < item.Quantity)
+                        {
+                            return BadRequest(new { error = $"Insufficient stock for {stock.StockDescription}" });
+                        }
+                    }
 
-                return new JsonResult(new { success = true, invoiceId = invoiceHeader.InvoiceID });
+                    // Create Invoice Header
+                    var invoiceHeader = new InvoiceHeader
+                    {
+                        InvoiceID = Guid.NewGuid(),
+                        DebtorID = model.DebtorID,
+                        InvoiceDate = model.InvoiceDate,
+                        TotalSellAmountExclVAT = model.LineItems.Sum(x => (x.Quantity * x.UnitPrice) - x.Discount),
+                        VAT = model.LineItems.Sum(x => ((x.Quantity * x.UnitPrice) - x.Discount) * VAT_RATE),
+                        TotalCost = model.LineItems.Sum(x => x.Quantity * stocks[x.StockID].Cost)
+                    };
+
+                    _context.InvoiceHeaders.Add(invoiceHeader);
+                    await _context.SaveChangesAsync(); // Save to generate the ID and computed InvoiceNo
+
+                    // Get the generated InvoiceNo for transactions
+                    await _context.Entry(invoiceHeader).ReloadAsync(); // Reload to get computed columns
+                    var generatedInvoiceNo = invoiceHeader.InvoiceNo;
+
+                    // Create Invoice Details
+                    foreach (var item in model.LineItems)
+                    {
+                        var stock = stocks[item.StockID];
+                        var detail = new InvoiceDetail
+                        {
+                            InvoiceDetailID = Guid.NewGuid(),
+                            InvoiceID = invoiceHeader.InvoiceID,
+                            StockID = item.StockID,
+                            QtySold = item.Quantity,
+                            UnitCost = stock.Cost,
+                            UnitSell = item.UnitPrice,
+                            Disc = item.Discount,
+                            Total = (item.Quantity * item.UnitPrice) - item.Discount
+                        };
+
+                        _context.InvoiceDetails.Add(detail);
+
+                        // Update Stock
+                        stock.StockOnHand -= item.Quantity;
+                        stock.QtySold += item.Quantity;
+                        stock.TotalSalesExclVat += detail.Total;
+                        stock.UpdatedBy = "System";
+                        stock.UpdatedOn = DateTime.Now;
+                    }
+
+                    // Create Stock Transactions
+                    foreach (var item in model.LineItems)
+                    {
+                        var stock = stocks[item.StockID];
+                        var stockTransaction = new StockTransaction
+                        {
+                            TransactionID = Guid.NewGuid(),
+                            StockID = item.StockID,
+                            TransactionDate = DateTime.Now,
+                            TransactionType = "SALE",
+                            DocumentNo = generatedInvoiceNo,
+                            Qty = item.Quantity,
+                            UnitCost = stock.Cost,
+                            UnitSell = item.UnitPrice
+                            
+                        };
+
+                        _context.StockTransactions.Add(stockTransaction);
+                    }
+
+                    // Update Debtor
+                    var debtor = await _context.Debtors.FindAsync(model.DebtorID);
+                    if (debtor == null)
+                    {
+                        throw new Exception("Debtor not found");
+                    }
+
+                    debtor.Balance += invoiceHeader.TotalSellAmountExclVAT + invoiceHeader.VAT;
+                    debtor.SalesYearToDate += invoiceHeader.TotalSellAmountExclVAT;
+                    debtor.CostYearToDate += invoiceHeader.TotalCost;
+                    debtor.UpdatedBy = "System";
+                    debtor.UpdatedOn = DateTime.Now;
+
+                    // Create Debtor Transaction
+                    var debtorTransaction = new DebtorTransaction
+                    {
+                        TransactionID = Guid.NewGuid(),
+                        DebtorID = model.DebtorID,
+                        TransactionDate = DateTime.Now,
+                        TransactionType = "SALE",
+                        DocumentNo = generatedInvoiceNo,
+                        GrossTransactionValue = invoiceHeader.TotalSellAmountExclVAT + invoiceHeader.VAT,
+                        VatValue = invoiceHeader.VAT
+                        
+                    };
+
+                    _context.DebtorTransactions.Add(debtorTransaction);
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    _logger.LogInformation("Invoice {InvoiceNo} created successfully", generatedInvoiceNo);
+
+                    return new JsonResult(new
+                    {
+                        success = true,
+                        invoiceId = invoiceHeader.InvoiceID,
+                        invoiceNo = generatedInvoiceNo
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Error processing invoice for Debtor {DebtorID}", model.DebtorID);
+                    return BadRequest(new { error = ex.Message });
+                }
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error processing invoice");
-                return new JsonResult(new { success = false, error = ex.Message });
+                _logger.LogError(ex, "Unhandled error in invoice processing");
+                return StatusCode(500, new { error = "An unexpected error occurred" });
             }
         }
+    }
 
-        private async Task GenerateInvoicePdf(InvoiceHeader header, List<InvoiceLineItem> lineItems)
-        {
-            // Implementation will be provided in a separate method
-            await Task.CompletedTask;
-        }
+    public class InvoiceInputModel
+    {
+        [Required(ErrorMessage = "Debtor selection is required")]
+        public Guid DebtorID { get; set; }
+
+        [Required(ErrorMessage = "Invoice date is required")]
+        public DateTime InvoiceDate { get; set; } = DateTime.Now;
+
+        [Required(ErrorMessage = "At least one line item is required")]
+        public List<InvoiceLineItemInput> LineItems { get; set; } = new();
+    }
+
+    public class InvoiceLineItemInput
+    {
+        [Required(ErrorMessage = "Stock selection is required")]
+        public Guid StockID { get; set; }
+
+        [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "Quantity must be greater than 0")]
+        public int Quantity { get; set; }
+
+        [Required]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Unit price must be greater than 0")]
+        public decimal UnitPrice { get; set; }
+
+        [Range(0, double.MaxValue, ErrorMessage = "Discount cannot be negative")]
+        public decimal Discount { get; set; }
     }
 }
