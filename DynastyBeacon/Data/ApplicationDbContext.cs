@@ -155,7 +155,7 @@ public class ApplicationDbContext : DbContext
             // Configure TransactionID as the primary key
             entity.HasKey(e => e.TransactionID);
 
-            
+
 
             entity.Property(e => e.TransactionID)
                 .HasDefaultValueSql("NEWID()");

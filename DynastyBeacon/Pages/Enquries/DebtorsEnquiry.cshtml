@@ -8,7 +8,6 @@
 <!-- Header section with search -->
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        
         <p class="text-muted mb-0">Search and view detailed debtor information</p>
     </div>
 </div>
@@ -22,9 +21,9 @@
                     <span class="input-group-text bg-light">
                         <i class="fas fa-search"></i>
                     </span>
-                    <input type="text" 
-                           id="searchInput" 
-                           class="form-control" 
+                    <input type="text"
+                           id="searchInput"
+                           class="form-control"
                            placeholder="Search by name, account code or email..."
                            value="@Model.SearchTerm" />
                 </div>
@@ -69,7 +68,7 @@
                             <td>@debtor.AccountCode</td>
                             <td>@debtor.Name</td>
                             <td>
-                                <a href="mailto:@debtor.Email" 
+                                <a href="mailto:@debtor.Email"
                                    class="text-decoration-none"
                                    style="color: var(--primary-navy);">
                                     @debtor.Email
@@ -81,13 +80,13 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                <span class="badge" 
+                                <span class="badge"
                                       style="background-color: var(--accent-gold);">
                                     @debtor.Tier
                                 </span>
                             </td>
                             <td class="text-center">
-                                <button type="button" 
+                                <button type="button"
                                         class="btn btn-sm btn-outline-primary view-details"
                                         data-debtor-id="@debtor.DebtorID"
                                         style="color: var(--primary-navy); border-color: var(--primary-navy);">
@@ -170,134 +169,49 @@
             return 'text-warning';
         };
 
-        // Search Functionality with Debounce
-        let searchTimeout;
-        const searchInput = document.getElementById('searchInput');
-        searchInput.addEventListener('keyup', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                const searchParams = new URLSearchParams(window.location.search);
-                searchParams.set('searchTerm', this.value);
-                window.location.href = `${window.location.pathname}?${searchParams.toString()}`;
-            }, 500);
-        });
-
-        // Sort Functionality
-        const sortSelect = document.getElementById('sortOrder');
-        sortSelect.addEventListener('change', function() {
-            const searchParams = new URLSearchParams(window.location.search);
-            searchParams.set('sortOrder', this.value);
-            window.location.href = `${window.location.pathname}?${searchParams.toString()}`;
-        });
-
-        // Initialize Charts
-        const initializeCharts = (data) => {
-            // Transaction Types Pie Chart
-            const typesCtx = document.getElementById('transactionTypesChart').getContext('2d');
-            const typesChart = new Chart(typesCtx, {
-                type: 'pie',
-                data: {
-                    labels: Object.keys(data.transactionsByType),
-                    datasets: [{
-                        data: Object.values(data.transactionsByType),
-                        backgroundColor: [
-                            '#0A2342',  // primary-navy
-                            '#C5A368',  // accent-gold
-                            '#2D2D2D',  // text-dark
-                            '#4A90E2'   // blue
-                        ],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                font: {
-                                    family: "'Lato', sans-serif"
-                                }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: '#0A2342',
-                            titleColor: '#F7F5F0',
-                            bodyColor: '#F7F5F0',
-                            padding: 12,
-                            cornerRadius: 8
-                        }
-                    }
-                }
-            });
-
-            // Transaction Values Bar Chart
-            const valuesCtx = document.getElementById('transactionValuesChart').getContext('2d');
-            const valuesChart = new Chart(valuesCtx, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(data.valuesByType),
-                    datasets: [{
-                        label: 'Transaction Values',
-                        data: Object.values(data.valuesByType),
-                        backgroundColor: '#0A2342',
-                        borderRadius: 6,
-                        barThickness: 'flex',
-                        maxBarThickness: 50
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: '#0A2342',
-                            titleColor: '#F7F5F0',
-                            bodyColor: '#F7F5F0',
-                            padding: 12,
-                            cornerRadius: 8,
-                            callbacks: {
-                                label: (context) => formatCurrency(context.raw)
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: (value) => formatCurrency(value),
-                                font: {
-                                    family: "'Lato', sans-serif"
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.05)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                font: {
-                                    family: "'Lato', sans-serif"
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            return { typesChart, valuesChart };
-        };
-
         // Modal Content Generation
         const generateModalContent = (data) => {
             return `
+                <!-- KPI Metrics -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Profit Margin</h6>
+                                <h3 class="${getStatusClass((data.basicInfo.salesYearToDate - data.basicInfo.costYearToDate) / data.basicInfo.salesYearToDate * 100)}">
+                                    ${((data.basicInfo.salesYearToDate - data.basicInfo.costYearToDate) /
+                                      data.basicInfo.salesYearToDate * 100).toFixed(2)}%
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Avg Transaction</h6>
+                                <h3>${formatCurrency(data.averageTransactionValue)}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Total VAT</h6>
+                                <h3>${formatCurrency(data.transactions.reduce((sum, t) => sum + t.vatValue, 0))}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Days Since Last</h6>
+                                <h3>${Math.floor((new Date() - new Date(data.mostRecentTransaction?.transactionDate)) /
+                                      (1000 * 60 * 60 * 24))}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Basic Information Card -->
                 <div class="row g-4 mb-4">
                     <div class="col-md-6">
@@ -318,7 +232,7 @@
                                     <div class="col-12">
                                         <label class="text-muted small">Email</label>
                                         <p class="fw-medium">
-                                            <a href="mailto:${data.basicInfo.email}" 
+                                            <a href="mailto:${data.basicInfo.email}"
                                                class="text-decoration-none"
                                                style="color: var(--primary-navy);">
                                                 ${data.basicInfo.email}
@@ -345,63 +259,7 @@
                                 <i class="fas fa-chart-line me-2"></i>Financial Summary
                             </div>
                             <div class="card-body">
-                                <div class="row g-3">
-                                    <div class="col-sm-6">
-                                        <label class="text-muted small">Current Balance</label>
-                                        <p class="fw-medium ${getStatusClass(data.basicInfo.balance)}">
-                                            ${formatCurrency(data.basicInfo.balance)}
-                                        </p>
-                                    </div>
-                                    <div class="col-sm-6">
-                                        <label class="text-muted small">Sales YTD</label>
-                                        <p class="fw-medium">
-                                            ${formatCurrency(data.basicInfo.salesYearToDate)}
-                                        </p>
-                                    </div>
-                                    <div class="col-sm-6">
-                                        <label class="text-muted small">Cost YTD</label>
-                                        <p class="fw-medium">
-                                            ${formatCurrency(data.basicInfo.costYearToDate)}
-                                        </p>
-                                    </div>
-                                    <div class="col-sm-6">
-                                        <label class="text-muted small">Tier</label>
-                                        <p class="fw-medium">
-                                            <span class="badge" style="background-color: var(--accent-gold);">
-                                                ${data.basicInfo.tier || 'Standard'}
-                                            </span>
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- Transaction Statistics -->
-                                <hr>
-                                <div class="row g-3">
-                                    <div class="col-sm-6">
-                                        <label class="text-muted small">Total Transactions</label>
-                                        <p class="fw-medium">${data.totalTransactions}</p>
-                                    </div>
-                                    <div class="col-sm-6">
-                                        <label class="text-muted small">Average Value</label>
-                                        <p class="fw-medium">
-                                            ${formatCurrency(data.averageTransactionValue)}
-                                        </p>
-                                    </div>
-                                    <div class="col-sm-6">
-                                        <label class="text-muted small">Largest Transaction</label>
-                                        <p class="fw-medium">
-                                            ${formatCurrency(data.largestTransaction?.grossTransactionValue || 0)}
-                                        </p>
-                                    </div>
-                                    <div class="col-sm-6">
-                                        <label class="text-muted small">Last Transaction</label>
-                                        <p class="fw-medium">
-                                            ${data.mostRecentTransaction 
-                                                ? formatDate(data.mostRecentTransaction.transactionDate)
-                                                : '-'}
-                                        </p>
-                                    </div>
-                                </div>
+                                <canvas id="salesCostChart" height="200"></canvas>
                             </div>
                         </div>
                     </div>
@@ -412,72 +270,236 @@
                     <div class="col-md-6">
                         <div class="dashboard-card">
                             <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
-                                <i class="fas fa-chart-pie me-2"></i>Transaction Distribution
+                                <i class="fas fa-chart-line me-2"></i>Balance Trend
                             </div>
                             <div class="card-body">
-                                <canvas id="transactionTypesChart" height="300"></canvas>
+                                <canvas id="balanceTrendChart" height="300"></canvas>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="dashboard-card">
                             <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
-                                <i class="fas fa-chart-bar me-2"></i>Transaction Values
+                                <i class="fas fa-chart-bar me-2"></i>VAT Analysis
                             </div>
                             <div class="card-body">
-                                <canvas id="transactionValuesChart" height="300"></canvas>
+                                <canvas id="vatAnalysisChart" height="300"></canvas>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Recent Transactions Table -->
+                <!-- Transaction Timeline -->
                 <div class="dashboard-card">
                     <div class="card-header" style="background-color: var(--primary-navy); color: var(--cream-bg);">
-                        <i class="fas fa-history me-2"></i>Recent Transactions
+                        <i class="fas fa-history me-2"></i>Transaction Timeline
                     </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead style="background-color: var(--cream-bg);">
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Type</th>
-                                        <th>Document No</th>
-                                        <th class="text-end">Amount</th>
-                                        <th class="text-end">VAT</th>
-                                        <th class="text-end">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${data.transactions.map(t => `
-                                        <tr>
-                                            <td>${formatDate(t.transactionDate)}</td>
-                                            <td>
-                                                <span class="badge" 
-                                                      style="background-color: var(--primary-navy);">
-                                                    ${t.transactionType}
-                                                </span>
-                                            </td>
-                                            <td>${t.documentNo}</td>
-                                            <td class="text-end">
-                                                ${formatCurrency(t.grossTransactionValue)}
-                                            </td>
-                                            <td class="text-end">
-                                                ${formatCurrency(t.vatValue)}
-                                            </td>
-                                            <td class="text-end">
-                                                ${formatCurrency(t.grossTransactionValue + t.vatValue)}
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
+                    <div class="card-body">
+                        <div class="timeline">
+                            ${data.transactions.slice(0, 10).map(t => `
+                                <div class="timeline-item">
+                                    <div class="timeline-date">${formatDate(t.transactionDate)}</div>
+                                    <div class="timeline-content">
+                                        <h6>${t.transactionType}</h6>
+                                        <p>Document: ${t.documentNo}</p>
+                                        <p>Amount: ${formatCurrency(t.grossTransactionValue + t.vatValue)}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
                 </div>
             `;
         };
+
+        // Initialize Charts
+        const initializeCharts = (data) => {
+            // Sales vs Cost Chart
+            const salesCostCtx = document.getElementById('salesCostChart').getContext('2d');
+            const salesCostChart = new Chart(salesCostCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Year to Date Performance'],
+                    datasets: [{
+                        label: 'Sales',
+                        data: [data.basicInfo.salesYearToDate],
+                        backgroundColor: '#0A2342',
+                    }, {
+                        label: 'Cost',
+                        data: [data.basicInfo.costYearToDate],
+                        backgroundColor: '#C5A368',
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Sales vs Cost YTD'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: ${formatCurrency(context.raw)}`
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Balance Trend Chart
+            const balanceTrendCtx = document.getElementById('balanceTrendChart').getContext('2d');
+            const balanceTrendChart = new Chart(balanceTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: data.transactions.map(t => formatDate(t.transactionDate)),
+                    datasets: [{
+                        label: 'Running Balance',
+                        data: data.transactions.map((_, index, arr) => {
+                            return arr.slice(0, index + 1).reduce((sum, t) =>
+                                sum + t.grossTransactionValue + t.vatValue, 0);
+                        }),
+                        borderColor: '#0A2342',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `Balance: ${formatCurrency(context.raw)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (value) => formatCurrency(value)
+                            }
+                        }
+                    }
+                }
+            });
+
+            // VAT Analysis Chart
+            const vatCtx = document.getElementById('vatAnalysisChart').getContext('2d');
+            const vatAnalysisChart = new Chart(vatCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.transactions.map(t => formatDate(t.transactionDate)),
+                    datasets: [{
+                        label: 'Net Amount',
+                        data: data.transactions.map(t => t.grossTransactionValue),
+                        backgroundColor: '#0A2342',
+                        order: 1
+                    }, {
+                        label: 'VAT',
+                        data: data.transactions.map(t => t.vatValue),
+                        backgroundColor: '#C5A368',
+                        order: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `${context.dataset.label}: ${formatCurrency(context.raw)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (value) => formatCurrency(value)
+                            }
+                        }
+                    }
+                }
+            });
+
+            return { salesCostChart, balanceTrendChart, vatAnalysisChart };
+        };
+
+        // Add custom CSS for timeline
+        const style = document.createElement('style');
+        style.textContent = `
+            .timeline {
+                position: relative;
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            .timeline::after {
+                content: '';
+                position: absolute;
+                width: 2px;
+                background-color: var(--primary-navy);
+                top: 0;
+                bottom: 0;
+                left: 50%;
+                margin-left: -1px;
+            }
+            .timeline-item {
+                padding: 10px 40px;
+                position: relative;
+                width: 50%;
+            }
+            .timeline-item::after {
+                content: '';
+                position: absolute;
+                width: 15px;
+                height: 15px;
+                right: -7px;
+                background-color: var(--accent-gold);
+                border: 2px solid var(--primary-navy);
+                top: 15px;
+                border-radius: 50%;
+                z-index: 1;
+            }
+            .timeline-item:nth-child(even) {
+                left: 50%;
+            }
+            .timeline-item:nth-child(even)::after {
+                left: -8px;
+            }
+            .timeline-content {
+                padding: 15px;
+                background-color: white;
+                border-radius: 6px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+            .timeline-date {
+                font-weight: bold;
+                color: var(--primary-navy);
+                margin-bottom: 5px;
+            }
+        `;
+        document.head.appendChild(style);
+
+
+        // Search Functionality with Debounce
+        let searchTimeout;
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('keyup', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const searchParams = new URLSearchParams(window.location.search);
+                searchParams.set('searchTerm', this.value);
+                window.location.href = `${window.location.pathname}?${searchParams.toString()}`;
+            }, 500);
+        });
+
+        // Sort Functionality
+        const sortSelect = document.getElementById('sortOrder');
+        sortSelect.addEventListener('change', function() {
+            const searchParams = new URLSearchParams(window.location.search);
+            searchParams.set('sortOrder', this.value);
+            window.location.href = `${window.location.pathname}?${searchParams.toString()}`;
+        });
 
         // View Details Event Handler
         document.querySelectorAll('.view-details').forEach(button => {
@@ -485,27 +507,36 @@
                 const debtorId = this.dataset.debtorId;
                 const modal = new bootstrap.Modal(document.getElementById('debtorDetailsModal'));
                 const contentDiv = document.getElementById('debtorDetailsContent');
-                
-                try {
-                    const response = await fetch(`?handler=DebtorDetails&debtorId=${debtorId}`);
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    
-                    const data = await response.json();
-                    contentDiv.innerHTML = generateModalContent(data);
-                    
-                    modal.show();
-                    const charts = initializeCharts(data);
 
-                    // Store charts in modal for cleanup
+                try {
+                    contentDiv.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Loading...</p></div>';
+                    modal.show();
+
+                    const response = await fetch(`?handler=DebtorDetails&debtorId=${debtorId}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (!data || !data.basicInfo) {
+                        throw new Error('Invalid data received');
+                    }
+
+                    contentDiv.innerHTML = generateModalContent(data);
+                    const charts = initializeCharts(data);
                     modal._element.charts = charts;
                 } catch (error) {
-                    console.error('Error loading debtor details:', error);
-                    alert('Error loading debtor details. Please try again.');
+                    console.error('Error:', error);
+                    contentDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error loading debtor details. Please try again later.
+                        </div>`;
                 }
             });
         });
 
-        // Modal Cleanup 
+        // Modal Cleanup
         document.getElementById('debtorDetailsModal').addEventListener('hidden.bs.modal', function() {
             if (this.charts) {
                 Object.values(this.charts).forEach(chart => chart.destroy());
@@ -610,7 +641,59 @@
             }
         });
 
-        // Toast for notifications
+        // CSV Export Functionality
+        document.getElementById('exportCSV').addEventListener('click', function() {
+            try {
+                const table = document.querySelector('.table-responsive table');
+                if (!table) throw new Error('No table found to export');
+
+                const rows = Array.from(table.querySelectorAll('tr'));
+
+                // Get headers
+                const headers = Array.from(rows[0].querySelectorAll('th'))
+                    .map(header => header.textContent.trim());
+
+                // Get data
+                const csvData = rows.slice(1).map(row => {
+                    return Array.from(row.querySelectorAll('td'))
+                        .map(cell => {
+                            // Clean the cell content
+                            let text = cell.textContent.trim();
+                            // Handle numbers and currency
+                            if (text.startsWith('R ')) {
+                                text = text.replace('R ', '').replace(/,/g, '');
+                            }
+                            // Escape commas in text
+                            if (text.includes(',')) {
+                                text = `"${text}"`;
+                            }
+                            return text;
+                        })
+                        .join(',');
+                });
+
+                // Combine headers and data
+                const csv = [headers.join(','), ...csvData].join('\n');
+
+                // Create download link
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'debtor-transactions.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                createToast('CSV exported successfully', 'success');
+            } catch (error) {
+                console.error('Error exporting CSV:', error);
+                createToast('Error exporting CSV', 'danger');
+            }
+        });
+
+        // Toast Notification System
         const createToast = (message, type = 'info') => {
             const toastContainer = document.getElementById('toastContainer') || (() => {
                 const container = document.createElement('div');
@@ -645,42 +728,6 @@
                 toastElement.remove();
             });
         };
-
-        // Export functionality (CSV)
-        document.getElementById('exportCSV').addEventListener('click', function() {
-            try {
-                const table = document.querySelector('table');
-                const rows = Array.from(table.querySelectorAll('tr'));
-
-                // Get headers
-                const headers = Array.from(rows.shift().querySelectorAll('th'))
-                    .map(header => header.textContent.trim());
-
-                // Get data
-                const csvData = rows.map(row => {
-                    return Array.from(row.querySelectorAll('td'))
-                        .map(cell => cell.textContent.trim())
-                        .join(',');
-                });
-
-                // Combine headers and data
-                const csv = [headers.join(','), ...csvData].join('\n');
-
-                // Create download link
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'debtor-transactions.csv';
-                a.click();
-                window.URL.revokeObjectURL(url);
-
-                createToast('CSV exported successfully', 'success');
-            } catch (error) {
-                console.error('Error exporting CSV:', error);
-                createToast('Error exporting CSV', 'danger');
-            }
-        });
 
         // Initialize page state
         document.addEventListener('DOMContentLoaded', () => {
